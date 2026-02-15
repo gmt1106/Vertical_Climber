@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mountain Goat</string>
+    <string name="start_game">Start Game</string>
+    <string name="high_scores">High Scores</string>
+    <string name="help">Help</string>
+    <string name="game_over">Game Over</string>
+    <string name="score">Score: %1$d</string>
+    <string name="level">Level: %1$d</string>
+    <string name="height">Height: %1$d</string>
+</resources>

@@ -1,0 +1,581 @@
+# Mountain Goat - Android ASCII Vertical Jumper Game - Implementation Plan
+
+## Project Overview
+"Mountain Goat" is a native Android vertical jumper game using Kotlin with Canvas rendering and ASCII art graphics. Players control a mountain goat using a slingshot mechanic to launch upward through sparse platforms, avoiding obstacles in a one-attempt, distance-climbing challenge. The mountain goat must climb as high as possible before dying, with auto-scrolling creating constant time pressure. Minimalist design with distance tracking in meters, no health system, and focused gameplay.
+
+## Technology Stack
+- **Language**: Kotlin
+- **Rendering**: Custom Canvas View with ASCII art
+- **Architecture**: MVC variant (Model-View-Controller)
+- **Minimum SDK**: API 24 (Android 7.0)
+- **Target SDK**: API 34
+- **Dependencies**: Minimal (AndroidX Core, Material, Navigation, JSON serialization)
+
+## Key Architectural Decisions
+
+### 1. Custom View Game Loop
+- Thread-based game loop at 60 FPS (not coroutines)
+- Fixed timestep updates for consistent physics
+- SurfaceView with double-buffered Canvas rendering
+- Separate rendering thread from UI thread
+
+### 2. Component-Based Entity System
+- Base `Entity` class with position, velocity, bounds
+- Specialized entities: Player, Platform, Obstacle
+- EntityManager coordinates all entities
+- Object pooling for performance optimization
+
+### 3. Physics-Based Slingshot
+- Touch input calculates pull vector
+- Launch velocity scales with pull distance (clamped)
+- Trajectory preview using physics simulation
+- Gravity constant: 980 pixels/sec² for realistic feel
+
+### 4. ASCII Rendering System
+- Monospace font (Roboto Mono)
+- Multi-line ASCII art support
+- Camera scrolling follows player (smooth lerp)
+- World-to-screen coordinate conversion
+
+### 5. Platform Generation
+- Sparse generation: Only 1-2 platforms visible at any time
+- Procedural generation as player ascends
+- Reachability validation (no impossible jumps)
+- Tight spacing for focused gameplay (next step always visible)
+- Platform types: Normal, Moving, Breaking, Bouncy
+
+## Project Structure
+
+```
+app/src/main/java/com/yourpackage/jumpergame/
+├── MainActivity.kt
+├── ui/
+│   ├── fragments/
+│   │   ├── MenuFragment.kt
+│   │   ├── GameFragment.kt
+│   │   └── HighScoreFragment.kt
+│   └── views/
+│       └── GameView.kt
+├── game/
+│   ├── GameEngine.kt           [CRITICAL]
+│   ├── GameThread.kt
+│   ├── GameState.kt
+│   ├── entities/
+│   │   ├── Entity.kt
+│   │   ├── Player.kt
+│   │   ├── Platform.kt
+│   │   ├── Obstacle.kt
+│   │   └── EntityManager.kt
+│   ├── physics/
+│   │   ├── PhysicsEngine.kt    [CRITICAL]
+│   │   ├── Vector2.kt
+│   │   └── CollisionDetector.kt [CRITICAL]
+│   ├── systems/
+│   │   ├── SlingshotManager.kt  [CRITICAL]
+│   │   ├── PlatformGenerator.kt
+│   │   ├── LevelManager.kt
+│   │   ├── ScoreManager.kt
+│   │   └── InputManager.kt
+│   └── rendering/
+│       ├── AsciiRenderer.kt     [CRITICAL]
+│       └── AsciiArt.kt
+├── data/
+│   └── HighScoreRepository.kt
+└── utils/
+    ├── Constants.kt
+    └── MathUtils.kt
+```
+
+## Implementation Phases
+
+### Phase 1: Project Setup & Foundation
+**Goal**: Create project structure with basic rendering
+
+1. **Initialize Android Project**
+   - Create new Android project in Android Studio
+   - Package: `com.yourpackage.mountaingoat`
+   - Set up build.gradle.kts with dependencies
+   - Configure AndroidManifest.xml (portrait, immersive mode)
+
+2. **Core Math & Utilities**
+   - Create `Vector2.kt`: Vector class with math operations
+     - Properties: x, y
+     - Methods: magnitude(), normalize(), plus(), times()
+   - Create `Constants.kt`: Game constants
+     - Physics: GRAVITY, TERMINAL_VELOCITY, AIR_RESISTANCE
+     - Slingshot: MAX_PULL_DISTANCE, LAUNCH_FORCE_MULTIPLIER
+     - Rendering: CHAR_WIDTH, CHAR_HEIGHT, TARGET_FPS
+     - Platform Generation: INITIAL_PLATFORM_COUNT = 2 (was 10), PLATFORM_GENERATION_BATCH = 1
+     - Auto-Scroll: AUTO_SCROLL_SPEED = 50f, AUTO_SCROLL_DEATH_OFFSET = 100f
+     - Distance Tracking: PIXELS_PER_METER = 100f
+     - Remove: PLAYER_MAX_HEALTH, COMBO_*, SCORE_* constants
+
+3. **Entity Foundation**
+   - Create `Entity.kt`: Abstract base class
+     - Properties: position, velocity, size, active
+     - Methods: update(deltaTime), getBounds(), getAsciiRepresentation()
+   - Create `Player.kt`: Player entity (mountain goat)
+     - ASCII art: 3-line mountain goat character with horns
+     - States: IDLE, FLYING, LANDING
+     - Methods: launch(velocity), land()
+
+4. **Basic Rendering**
+   - Create `AsciiRenderer.kt`: Rendering system
+     - Setup: Monospace font Paint, background Paint
+     - Methods: render(), renderEntity(), drawAscii()
+     - Camera: cameraPosY, worldToScreen()
+   - Create `AsciiArt.kt`: ASCII art constants
+     - Mountain goat player animations (jumping, landing states)
+     - Platform types (normal, moving, breaking, bouncy)
+     - Obstacles (spikes, hazards)
+
+5. **Game View & Loop**
+   - Create `GameView.kt`: Custom SurfaceView
+     - Implements SurfaceHolder.Callback
+     - Methods: surfaceCreated/Destroyed(), onDraw(), onTouchEvent()
+   - Create `GameThread.kt`: Game loop thread
+     - Target: 60 FPS with frame limiting
+     - Loop: Update game state → Render → Sleep if needed
+   - Create `MainActivity.kt`: Host GameView
+     - Set content view, handle lifecycle
+
+**Verification**: App runs, player renders on screen, falls with gravity
+
+### Phase 2: Physics & Movement
+**Goal**: Implement realistic physics and collision detection
+
+1. **Physics Engine**
+   - Create `PhysicsEngine.kt`
+     - `applyGravity(entity, deltaTime)`: Add gravity to velocity
+     - `updateVelocity(entity, deltaTime)`: Update position from velocity
+     - `calculateTrajectory(startPos, velocity)`: Predict arc (for slingshot preview)
+     - Constants: GRAVITY = 980f pixels/sec²
+
+2. **Collision Detection**
+   - Create `CollisionDetector.kt`
+     - `checkPlatformCollision(player, platform)`: AABB collision + landing check
+     - `rectIntersects(rect1, rect2)`: Basic rectangle intersection
+     - Landing rules: Player moving downward + bottom edge above platform top
+     - Pass-through: Allow upward movement through platforms
+
+3. **Platform Entity**
+   - Create `Platform.kt`
+     - Types: NORMAL, MOVING, BREAKING, BOUNCY
+     - Properties: width, type, moveSpeed, moveDirection
+     - Methods: update(deltaTime), onPlayerLand(), getAsciiRepresentation()
+     - ASCII: "==========" (Normal), "≈≈≈≈≈≈≈≈≈≈" (Moving), etc.
+
+4. **Entity Management**
+   - Create `EntityManager.kt`
+     - Collections: player, platforms, obstacles
+     - Methods: updateAll(), getActiveEntities(), cleanupInactive()
+     - Object pooling: Reuse inactive entities for performance
+
+**Verification**: Player falls, lands on platform, stops moving. Pass-through works when jumping upward.
+
+### Phase 3: Slingshot Mechanic
+**Goal**: Implement core slingshot gameplay with trajectory preview
+
+1. **Input Handling**
+   - Create `InputManager.kt`
+     - Process MotionEvent: ACTION_DOWN, ACTION_MOVE, ACTION_UP
+     - Route touch to SlingshotManager based on game state
+     - Methods: handleTouchEvent(), onTouchDown/Move/Up()
+
+2. **Slingshot System**
+   - Create `SlingshotManager.kt`
+     - Properties: slingshotAnchor, pullPosition, isAiming, trajectoryPoints
+     - `startAim(touchPos)`: Begin aiming from player position
+     - `updateAim(touchPos)`: Calculate pull vector, generate trajectory
+     - `release()`: Calculate velocity, launch player
+     - `calculateLaunchVelocity(pullVector)`: Map pull distance to velocity
+     - **INVERTED PULL**: Pull DOWN on screen = Launch UP (opposite direction)
+     - Constants: MAX_PULL = 150px, MIN_VEL = 300, MAX_VEL = 1500
+
+3. **Trajectory Preview**
+   - In SlingshotManager: `generateTrajectory()`
+     - Simulate physics: position += velocity * dt; velocity.y += gravity * dt
+     - Generate 30 points along arc
+     - Return List<Vector2> for rendering
+
+4. **Visual Rendering (Minimalist)**
+   - In AsciiRenderer: `renderTrajectory(canvas, trajectoryPoints)`
+     - **NO slingshot graphics** (no base, no bands)
+     - Draw trajectory dots only (every 3rd point for dotted effect)
+     - Visual feedback: White/yellow trajectory dots showing launch arc
+     - Clean, minimal UI focused on trajectory
+
+5. **Game State Management**
+   - Uses existing `GameState.kt`: Enum (READY, AIMING, JUMPING, PAUSED, GAME_OVER)
+   - State transitions:
+     - READY → AIMING (touch down)
+     - AIMING → JUMPING (touch up/release)
+     - JUMPING → READY (land on platform)
+
+**Verification**: Touch and drag down shows trajectory arc going UP. Release launches player along predicted path upward.
+
+### Phase 3.5: Fix Slingshot Direction & Reduce Platforms
+**Goal**: Fix broken pull direction and implement sparse platform generation
+
+1. **Fix Inverted Pull Direction**
+   - Update `SlingshotManager.calculateLaunchVelocity()`
+     - Change pull vector from `anchor - touch` to `touch - anchor`
+     - This inverts direction: pull DOWN = launch UP
+     - Maintains distance calculation and velocity mapping
+   - Update trajectory calculation to use corrected velocity
+   - Player should launch OPPOSITE to pull direction
+
+2. **Reduce Platform Count**
+   - Update `Constants.kt`
+     - Change `INITIAL_PLATFORM_COUNT` from 10 to 2
+     - Change platform generation batch from 5 to 1-2
+   - Update `GameEngine.generateInitialPlatforms()`
+     - Generate only 2 starting platforms (1 under player + 1 above)
+     - Tighter spacing ensures only next 1-2 steps visible
+   - Update `GameEngine.generatePlatformsIfNeeded()`
+     - Generate 1-2 platforms at a time (not 5)
+     - Sparse generation: only next step(s) visible
+
+3. **Remove Slingshot Graphics**
+   - Update `AsciiRenderer.renderSlingshot()`
+     - Remove slingshot base ASCII art
+     - Remove stretched band lines
+     - Remove pull indicator circle
+     - Keep ONLY trajectory dots
+   - Rename method to `renderTrajectory()` for clarity
+   - Update GameEngine to call `renderTrajectory()` instead
+
+**Verification**:
+- Pull DOWN on screen → goat launches UP
+- Only 1-2 platforms visible ahead
+- No slingshot graphics, clean trajectory preview only
+
+### Phase 4: Platform Generation & Scrolling
+**Goal**: Sparse platform generation with auto-scrolling death mechanic
+
+1. **Platform Generator**
+   - Create `PlatformGenerator.kt`
+     - `generateInitialPlatforms()`: Create 1-2 starting platforms only
+     - `generatePlatformsAbove(minY)`: Generate 1-2 platforms at a time (not 5)
+     - `ensureReachability(newPlatform, lastPlatform)`: Validate distances
+     - Platform spacing: 400-700 pixels vertical (physics-based: jump height = v²/(2*g))
+     - Platform width: 200-300 pixels
+     - Goal: Only next 1-2 steps visible at any time
+
+2. **Camera Scrolling**
+   - In AsciiRenderer: `updateCamera(playerY)`
+     - Scroll when player Y < screenHeight / 2
+     - Smooth follow: cameraPosY = lerp(cameraPosY, targetY, 0.1f)
+     - All rendering uses worldToScreen() conversion
+
+3. **Auto-Scroll Death Mechanic** ⚠️ NEW FEATURE
+   - Constant upward screen scrolling creates time pressure
+   - In GameEngine: `updateAutoScroll(deltaTime)`
+     - Auto-scroll speed: `AUTO_SCROLL_SPEED` pixels/second (e.g., 50 px/s)
+     - Increment `autoScrollOffset` each frame
+     - Adjust camera: `cameraPosY -= AUTO_SCROLL_SPEED * deltaTime`
+   - Death detection: Player falls behind visible area
+     - Calculate bottom of screen: `cameraY + screenHeight + DEATH_OFFSET`
+     - If `player.y > bottomThreshold`: Instant death
+   - Constants needed:
+     - `AUTO_SCROLL_SPEED = 50f // pixels per second`
+     - `AUTO_SCROLL_DEATH_OFFSET = 100f // grace distance`
+   - Creates urgency: Can't camp on platforms forever
+
+4. **Entity Cleanup**
+   - In EntityManager: `cleanupInactive()`
+     - Remove platforms below camera view immediately (no buffer)
+     - Trigger new platform generation above camera
+     - Object pooling: Free removed entities back to pool
+
+**Verification**: Camera follows player smoothly. Only 1-2 platforms visible ahead. Auto-scroll forces upward movement. Player dies if falling behind screen. No gaps or overlaps.
+
+### Phase 5: Game Systems (Distance Tracking, Obstacles, Game Over)
+**Goal**: Complete game mechanics with simplified progression
+
+1. **Distance Tracking System** (replaces Scoring)
+   - Create `DistanceManager.kt` (renamed from ScoreManager)
+     - Pure distance measurement: Track vertical height in pixels
+     - Convert to meters: `distance = pixels / PIXELS_PER_METER`
+     - Display format: "Distance: 45m" (not "Score: 450")
+     - Remove combo system entirely (simplified)
+     - Properties: currentDistancePixels, maxDistancePixels, startY
+     - Methods: updateDistance(playerY), getDistanceInMeters(), reset()
+     - Constants: `PIXELS_PER_METER = 100f // 100 pixels = 1 meter`
+
+2. **Level Progression** (Optional - Keep Simple)
+   - Option A: Remove level system entirely (constant difficulty)
+   - Option B: Simplify to distance milestones
+     - Every 100 meters = milestone marker (visual feedback only)
+     - No difficulty changes, consistent platform types
+     - Display: "100m", "200m" milestone messages
+   - No LevelManager needed if using Option A
+   - Keep platform generation consistent throughout
+
+3. **Obstacles**
+   - Create `Obstacle.kt`: Entity subclass
+     - Types: SPIKE (static), ENEMY (moving), SAW (rotating)
+     - Properties: type, moveSpeed
+     - ASCII art: " /\ " (spike), " >< " (enemy)
+     - Methods: update(deltaTime), onPlayerHit()
+     - **No damage system**: Hit = instant death
+
+4. **Game Over Logic** (One-Attempt Mode)
+   - **Remove health system completely** (no hearts, no lives)
+   - Instant death conditions:
+     - Collision with any obstacle = instant death
+     - Fall off screen (Y > camera bottom) = instant death
+     - Auto-scroll death (fall behind screen) = instant death
+   - Remove invulnerability mechanic (not needed)
+   - On death: Save high distance (meters), show game over screen
+   - Constants to remove: `PLAYER_MAX_HEALTH`, `INVULNERABILITY_DURATION`
+
+5. **Pause/Resume**
+   - GameEngine: pause() / resume() methods
+   - GameThread: suspend/resume loop
+   - Touch during JUMPING: Pause game, show menu overlay
+
+**Verification**: Distance increases correctly (meters displayed). Obstacles cause instant death. Auto-scroll death triggers. High distance saved. No health system present.
+
+### Phase 6: UI & Navigation
+**Goal**: Complete menu system and persistent storage
+
+1. **Fragments & Navigation**
+   - Create `MenuFragment.kt`: Main menu
+     - Buttons: Start Game, High Scores, Help
+     - ASCII art "MOUNTAIN GOAT" title logo with goat artwork
+     - Navigation to GameFragment
+
+   - Create `GameFragment.kt`: Game container
+     - Host GameView
+     - Pause overlay (semi-transparent)
+     - Game over dialog (score, restart, menu)
+
+   - Create `HighScoreFragment.kt`: Distance leaderboard
+     - RecyclerView with top 10 distances
+     - Display: Rank, Distance (meters), Date
+     - Remove: Score column, Level column (simplified)
+     - Clear scores button (with confirmation)
+
+2. **Persistent Storage**
+   - Create `HighScoreRepository.kt`
+     - Use SharedPreferences for storage
+     - Data class: HighScoreEntry (rank, distanceMeters, timestamp)
+     - Remove: score field, level field (simplified)
+     - Methods: saveDistance(), getTopDistances(), isHighDistance(), clearAllScores()
+     - Storage key: "high_distance_list" (JSON array)
+
+3. **UI Overlays (In-Game HUD)**
+   - In AsciiRenderer: `renderUI(canvas, gameState)`
+     - Top-center: Distance in meters (e.g., "45m")
+     - Remove: Score display, Level display, Health hearts
+     - Minimal UI for clean, focused aesthetic
+     - Optional: High distance record for comparison
+
+4. **MainActivity Setup**
+   - Navigation graph with fragments
+   - Fragment transactions
+   - Handle back button: Pause game if in GameFragment
+   - Immersive fullscreen mode
+
+**Verification**: Navigate between all screens. High scores save/load correctly. In-game HUD displays accurate info. Back button pauses game.
+
+### Phase 7: Polish & Optimization
+**Goal**: Production-ready game
+
+1. **Visual Polish**
+   - Particle effects (ASCII characters falling)
+   - Landing animation (brief scale effect)
+   - Platform breaking animation
+   - Smooth transitions between states
+
+2. **Performance Optimization**
+   - Profile with Android Profiler
+   - Optimize object allocations in game loop
+   - Object pooling for all entities
+   - Spatial partitioning for collision checks
+   - Canvas drawing optimization (batch text rendering)
+
+3. **Difficulty Balancing**
+   - Playtesting sessions
+   - Adjust constants:
+     - Platform spacing
+     - Launch force multiplier
+     - Gravity strength
+     - Level progression speed
+   - Ensure first 3 levels are easy (tutorial feel)
+
+4. **Bug Fixes**
+   - Edge cases: Rapid touches, minimizing/resuming
+   - Screen size variations testing
+   - Memory leak detection
+   - Collision false positives/negatives
+
+5. **Unit Tests**
+   - PhysicsEngineTest: Gravity, trajectory calculations
+   - CollisionDetectorTest: Platform landing, obstacle hits
+   - SlingshotManagerTest: Velocity calculation, trajectory
+   - ScoreManagerTest: Score updates, combo system
+
+**Verification**: Game runs smoothly at 60 FPS. No crashes or memory leaks. Difficulty feels balanced. All edge cases handled.
+
+## Critical Implementation Details
+
+### Slingshot Velocity Calculation
+```kotlin
+fun calculateLaunchVelocity(pullPosition: Vector2): Vector2 {
+    val pullVector = Vector2(
+        slingshotAnchor.x - pullPosition.x,
+        slingshotAnchor.y - pullPosition.y
+    )
+    val pullDistance = min(pullVector.magnitude(), MAX_PULL_DISTANCE)
+    val direction = pullVector.normalize()
+    val velocityMag = mapRange(
+        pullDistance,
+        0f, MAX_PULL_DISTANCE,
+        MIN_LAUNCH_VELOCITY, MAX_LAUNCH_VELOCITY
+    )
+    return direction * velocityMag
+}
+```
+
+### Game Loop Pattern
+```kotlin
+override fun run() {
+    var lastTime = System.nanoTime()
+    while (running) {
+        val currentTime = System.nanoTime()
+        val deltaTime = (currentTime - lastTime) / 1_000_000_000f
+        lastTime = currentTime
+
+        gameEngine.update(deltaTime)
+
+        val canvas = surfaceHolder.lockCanvas()
+        canvas?.let {
+            gameEngine.render(it)
+            surfaceHolder.unlockCanvasAndPost(it)
+        }
+
+        val frameTime = System.currentTimeMillis() - currentTime / 1_000_000
+        if (frameTime < TARGET_FRAME_TIME) {
+            Thread.sleep(TARGET_FRAME_TIME - frameTime)
+        }
+    }
+}
+```
+
+### Platform Landing Collision
+```kotlin
+fun checkPlatformCollision(player: Player, platform: Platform): Boolean {
+    val playerBounds = player.getBounds()
+    val platformBounds = platform.getBounds()
+
+    if (!rectIntersects(playerBounds, platformBounds)) return false
+
+    // Must be moving downward
+    if (player.velocity.y <= 0) return false
+
+    // Bottom edge must be above platform top (landing from above)
+    return playerBounds.bottom <= platformBounds.top + 10f
+}
+```
+
+### Camera Smooth Follow
+```kotlin
+fun updateCamera(playerY: Float) {
+    val threshold = screenHeight / 2f
+    if (playerY < threshold) {
+        val targetY = playerY - threshold
+        cameraPosY = lerp(cameraPosY, targetY, 0.1f)
+    }
+}
+
+fun lerp(start: Float, end: Float, t: Float) = start + (end - start) * t
+```
+
+## Build Configuration
+
+### build.gradle.kts (App)
+```kotlin
+android {
+    namespace = "com.yourpackage.mountaingoat"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.yourpackage.mountaingoat"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildFeatures {
+        viewBinding = true
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+
+    testImplementation("junit:junit:4.13.2")
+}
+```
+
+### AndroidManifest.xml
+```xml
+<activity
+    android:name=".MainActivity"
+    android:exported="true"
+    android:screenOrientation="portrait"
+    android:configChanges="orientation|screenSize">
+</activity>
+```
+
+## Verification & Testing
+
+### End-to-End Testing Flow
+1. **Launch App** → Main menu appears with "MOUNTAIN GOAT" ASCII logo
+2. **Tap "Start Game"** → Game screen loads, mountain goat in slingshot at bottom
+3. **Touch & Drag Down** → Slingshot pulls back, trajectory preview shows
+4. **Release** → Player launches along predicted arc
+5. **Land on Platform** → Player stops, score increases, can slingshot again
+6. **Jump Multiple Times** → Height increases, camera scrolls, new platforms generate
+7. **Reach 1000px** → Level 2 message, difficulty increases
+8. **Hit Obstacle** → Instant death, game over screen shows distance
+9. **Fall off screen** → Instant death, game over screen shows distance
+10. **Check High Scores** → New high score saved and displayed
+11. **Restart Game** → Everything resets correctly
+
+### Performance Targets
+- **Frame Rate**: Stable 60 FPS
+- **APK Size**: < 10 MB
+- **Memory**: < 50 MB RAM usage
+- **Load Time**: < 2 seconds from tap to gameplay
+- **Input Latency**: < 50ms touch response
+
+## Risk Mitigation
+
+### Technical Risks
+1. **Frame rate drops**: Object pooling, spatial partitioning, profiling
+2. **Touch input lag**: High-priority input thread, optimized event handling
+3. **Memory leaks**: Proper lifecycle, weak references, profiling
+4. **ASCII rendering slow**: Batch rendering, cache Paint objects
+
+### Design Risks
+1. **Difficulty too hard/easy**: Playtesting, adjustable constants, analytics
+2. **Slingshot feel wrong**: Iterative tuning, multiple playtest sessions
+3. **Screen size issues**: Density-independent pixels, multiple device testing
+
+## Success Criteria
+- ✅ Slingshot mechanic feels responsive and fun
+- ✅ Physics feel realistic (smooth arc, proper gravity)
+- ✅ Platform generation never creates impossible jumps
+- ✅ Game runs at 60 FPS on mid-range devices (2-year-old phones)
+- ✅ Progression system provides steady difficulty increase
+- ✅ High scores persist across app restarts
+- ✅ No crashes during 30-minute play session
+- ✅ ASCII art is readable and visually appealing

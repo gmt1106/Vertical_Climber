@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MountainGoat" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/green_700</item>
+        <item name="colorPrimaryVariant">@color/green_900</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/brown_500</item>
+        <item name="colorSecondaryVariant">@color/brown_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+    </style>
+
+    <style name="Theme.MountainGoat.Fullscreen" parent="Theme.MountainGoat">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>
