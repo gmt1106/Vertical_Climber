@@ -214,59 +214,21 @@ app/src/main/java/com/yourpackage/jumpergame/
 
 **Verification**: Touch and drag down shows trajectory arc going UP. Release launches player along predicted path upward.
 
-### Phase 3.5: Fix Slingshot Direction & Reduce Platforms
-**Goal**: Fix broken pull direction and implement sparse platform generation
+### Phase 4: Platform Generation, Scrolling & Boundaries
+**Goal**: Sparse platform generation with auto-scrolling death mechanic, screen boundary walls, and correct initial platform placement
 
-1. **Fix Inverted Pull Direction**
-   - Update `SlingshotManager.calculateLaunchVelocity()`
-     - Change pull vector from `anchor - touch` to `touch - anchor`
-     - This inverts direction: pull DOWN = launch UP
-     - Maintains distance calculation and velocity mapping
-   - Update trajectory calculation to use corrected velocity
-   - Player should launch OPPOSITE to pull direction
+1. **Screen Boundary Walls**
+   - Goat must not go outside left and right edges of the screen
+   - Clamp player X position: `0` to `screenWidth - player.width`
+   - When hitting a wall while moving laterally, zero out horizontal velocity
+   - Gravity continues to apply — goat slides down along the wall edge
+   - Check and clamp after each position update in the game loop
 
-2. **Reduce Platform Count**
-   - Update `Constants.kt`
-     - Change `INITIAL_PLATFORM_COUNT` from 10 to 2
-     - Change platform generation batch from 5 to 1-2
-   - Update `GameEngine.generateInitialPlatforms()`
-     - Generate only 2 starting platforms (1 under player + 1 above)
-     - Tighter spacing ensures only next 1-2 steps visible
-   - Update `GameEngine.generatePlatformsIfNeeded()`
-     - Generate 1-2 platforms at a time (not 5)
-     - Sparse generation: only next step(s) visible
-
-3. **Remove Slingshot Graphics**
-   - Update `AsciiRenderer.renderSlingshot()`
-     - Remove slingshot base ASCII art
-     - Remove stretched band lines
-     - Remove pull indicator circle
-     - Keep ONLY trajectory dots
-   - Rename method to `renderTrajectory()` for clarity
-   - Update GameEngine to call `renderTrajectory()` instead
-
-**Verification**:
-- Pull DOWN on screen → goat launches UP
-- Only 1-2 platforms visible ahead
-- No slingshot graphics, clean trajectory preview only
-
-### Phase 4: Platform Generation & Scrolling
-**Goal**: Sparse platform generation with auto-scrolling death mechanic
-
-1. **Platform Generator**
-   - Create `PlatformGenerator.kt`
-     - `generateInitialPlatforms()`: Create 1-2 starting platforms only
-     - `generatePlatformsAbove(minY)`: Generate 1-2 platforms at a time (not 5)
-     - `ensureReachability(newPlatform, lastPlatform)`: Validate distances
-     - Platform spacing: 400-700 pixels vertical (physics-based: jump height = v²/(2*g))
-     - Platform width: 200-300 pixels
-     - Goal: Only next 1-2 steps visible at any time
-
-2. **Camera Scrolling**
-   - In AsciiRenderer: `updateCamera(playerY)`
-     - Scroll when player Y < screenHeight / 2
-     - Smooth follow: cameraPosY = lerp(cameraPosY, targetY, 0.1f)
-     - All rendering uses worldToScreen() conversion
+2. **Fix Initial Platform Placement**
+   - First platform generated in `generateInitialPlatforms()` must be ABOVE the goat character (lower Y value), not below
+   - Currently placed at `startY + player.height + PLATFORM_MIN_SPACING` (below goat — wrong direction)
+   - Should be placed at `startY - PLATFORM_MIN_SPACING` (above goat — correct, gives goat a target to jump to)
+   - Subsequent platforms continue stacking upward (decreasing Y) from there
 
 3. **Auto-Scroll Death Mechanic** ⚠️ NEW FEATURE
    - Constant upward screen scrolling creates time pressure
@@ -282,28 +244,12 @@ app/src/main/java/com/yourpackage/jumpergame/
      - `AUTO_SCROLL_DEATH_OFFSET = 100f // grace distance`
    - Creates urgency: Can't camp on platforms forever
 
-4. **Entity Cleanup**
-   - In EntityManager: `cleanupInactive()`
-     - Remove platforms below camera view immediately (no buffer)
-     - Trigger new platform generation above camera
-     - Object pooling: Free removed entities back to pool
-
-**Verification**: Camera follows player smoothly. Only 1-2 platforms visible ahead. Auto-scroll forces upward movement. Player dies if falling behind screen. No gaps or overlaps.
+**Verification**: Goat cannot move past left/right screen edges and slides down along walls. First platform appears above goat at game start. Camera follows player smoothly. Auto-scroll forces upward movement. Player dies if falling behind screen.
 
 ### Phase 5: Game Systems (Distance Tracking, Obstacles, Game Over)
 **Goal**: Complete game mechanics with simplified progression
 
-1. **Distance Tracking System** (replaces Scoring)
-   - Create `DistanceManager.kt` (renamed from ScoreManager)
-     - Pure distance measurement: Track vertical height in pixels
-     - Convert to meters: `distance = pixels / PIXELS_PER_METER`
-     - Display format: "Distance: 45m" (not "Score: 450")
-     - Remove combo system entirely (simplified)
-     - Properties: currentDistancePixels, maxDistancePixels, startY
-     - Methods: updateDistance(playerY), getDistanceInMeters(), reset()
-     - Constants: `PIXELS_PER_METER = 100f // 100 pixels = 1 meter`
-
-2. **Level Progression** (Optional - Keep Simple)
+1. **Level Progression** (Optional - Keep Simple)
    - Option A: Remove level system entirely (constant difficulty)
    - Option B: Simplify to distance milestones
      - Every 100 meters = milestone marker (visual feedback only)
@@ -312,7 +258,7 @@ app/src/main/java/com/yourpackage/jumpergame/
    - No LevelManager needed if using Option A
    - Keep platform generation consistent throughout
 
-3. **Obstacles**
+2. **Obstacles**
    - Create `Obstacle.kt`: Entity subclass
      - Types: SPIKE (static), ENEMY (moving), SAW (rotating)
      - Properties: type, moveSpeed
@@ -320,17 +266,15 @@ app/src/main/java/com/yourpackage/jumpergame/
      - Methods: update(deltaTime), onPlayerHit()
      - **No damage system**: Hit = instant death
 
-4. **Game Over Logic** (One-Attempt Mode)
-   - **Remove health system completely** (no hearts, no lives)
+3. **Game Over Logic** (One-Attempt Mode)
    - Instant death conditions:
      - Collision with any obstacle = instant death
      - Fall off screen (Y > camera bottom) = instant death
      - Auto-scroll death (fall behind screen) = instant death
    - Remove invulnerability mechanic (not needed)
    - On death: Save high distance (meters), show game over screen
-   - Constants to remove: `PLAYER_MAX_HEALTH`, `INVULNERABILITY_DURATION`
 
-5. **Pause/Resume**
+4. **Pause/Resume**
    - GameEngine: pause() / resume() methods
    - GameThread: suspend/resume loop
    - Touch during JUMPING: Pause game, show menu overlay
