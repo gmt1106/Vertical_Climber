@@ -33,6 +33,7 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     // Game data
     private var distanceMeters: Float = 0f
     private var startingY: Float = 0f
+    private var autoScrollActive: Boolean = false
 
     init {
         // Initialize player so feet are STARTING_POSITION_Y pixels from the bottom of screen
@@ -66,6 +67,17 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
      * Update game logic
      */
     fun update(deltaTime: Float) {
+        // Auto-scroll: camera moves up continuously after first jump
+        if (autoScrollActive && gameState != GameState.PAUSED && gameState != GameState.GAME_OVER) {
+            renderer.cameraPosY -= Constants.AUTO_SCROLL_SPEED * deltaTime
+
+            // Check if player fell behind the scrolling camera
+            if (player.position.y > renderer.cameraPosY + screenHeight) {
+                gameState = GameState.GAME_OVER
+                return
+            }
+        }
+
          when (gameState) {
             GameState.READY -> {
                 // Waiting for player input
@@ -118,6 +130,15 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
 
         // Update player
         player.update(deltaTime)
+
+        // Clamp player to screen boundaries (invisible walls)
+        if (player.position.x < 0f) {
+            player.position.x = 0f
+            player.velocity.x = 0f
+        } else if (player.position.x + player.visualWidth > screenWidth) {
+            player.position.x = screenWidth - player.visualWidth
+            player.velocity.x = 0f
+        }
     }
 
     /**
@@ -171,10 +192,10 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     private fun generateInitialPlatforms() {
 
         val startX = (screenWidth / 2f) - (player.width / 2f)
-        val startY = screenHeight - Constants.STARTING_POSITION_Y
+        val playerY = screenHeight - Constants.STARTING_POSITION_Y - player.height
 
-        // Create starting platform right under player (within min spacing distance)
-        val firstPlatformY = startY + player.height + Constants.PLATFORM_MIN_SPACING
+        // Create first platform above player (lower Y = higher on screen)
+        val firstPlatformY = playerY - Constants.PLATFORM_MIN_SPACING
         entityManager.createPlatform(
             x = startX - 20f,
             y = firstPlatformY,
@@ -255,6 +276,7 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
             val velocity = slingshotManager.getLaunchVelocity()
             player.launch(velocity)
             gameState = GameState.JUMPING
+            autoScrollActive = true
         }
 
         return handled
@@ -291,6 +313,7 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     fun reset() {
         gameState = GameState.READY
         distanceMeters = 0f
+        autoScrollActive = false
 
         player.reset()
         player.active = true

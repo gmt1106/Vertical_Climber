@@ -41,6 +41,10 @@ class Player(startX: Float, startY: Float) : Entity(
     var collisionOffsetX: Float = 0f
         private set
 
+    // Full visual width of the ASCII art (for screen boundary clamping)
+    var visualWidth: Float = 0f
+        private set
+
     private fun updateDimensions() {
         val asciiLines = getAsciiRepresentation()
         height = (asciiLines.size - 1) * Constants.CHAR_HEIGHT
@@ -52,6 +56,7 @@ class Player(startX: Float, startY: Float) : Entity(
 
         width = feetTrimmed.length * Constants.CHAR_WIDTH
         collisionOffsetX = leadingSpaces * Constants.CHAR_WIDTH
+        visualWidth = asciiLines.maxOf { it.length } * Constants.CHAR_WIDTH
     }
 
     /**

@@ -121,19 +121,12 @@ object AsciiArt {
 
     // Platform Types
     const val PLATFORM_NORMAL = "=========="
-    const val PLÏATFORM_MOVING = "≈≈≈≈≈≈≈≈≈≈"
+    const val PLATFORM_MOVING = "≈≈≈≈≈≈≈≈≈≈"
     const val PLATFORM_BREAKING = "----------"
     const val PLATFORM_BOUNCY = "▓▓▓▓▓▓▓▓▓▓"
 
     // Ground Types
     const val GROUND = ":.. ::.:. ::.:.:.: .:.:."
-
-    // background
-    val MOON = listOf(
-        "   .-.  ",
-        "  ( (   ",
-        "   `-'  "
-    )
 
     // Game Over
     val GAME_OVER = listOf(

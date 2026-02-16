@@ -55,6 +55,9 @@ object Constants {
     const val PIXELS_PER_LEVEL = 1000 // height needed to advance one level
     const val PLATFORM_GENERATION_BATCH = 1 // generate 1 platform at a time (gradual)
 
+    // Auto-Scroll
+    const val AUTO_SCROLL_SPEED = 100f // pixels per second (camera moves up)
+
     // Game State
     const val STARTING_POSITION_Y = 100f // initial player Y position from bottom
     const val SCREEN_BOTTOM_DEATH_OFFSET = 200f // how far below camera before game over
