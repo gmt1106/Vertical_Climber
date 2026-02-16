@@ -4,7 +4,11 @@ import android.view.MotionEvent
 import com.yourpackage.mountaingoat.utils.Constants
 import com.yourpackage.mountaingoat.utils.MathUtils
 import com.yourpackage.mountaingoat.utils.Vector2
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 
 /**
  * Manages slingshot mechanics: touch input, aiming, and launch
@@ -163,7 +167,17 @@ class SlingshotManager(
 
         // Launch OPPOSITE to pull direction (negate = real slingshot behavior)
         // Pull DOWN → launch UP, pull DOWN-RIGHT → launch UP-LEFT
-        val launchDirection = Vector2(-pullVector.x, -pullVector.y).normalize()
+        var launchDirection = Vector2(-pullVector.x, -pullVector.y).normalize()
+
+        // Clamp launch angle to within MAX_LAUNCH_ANGLE degrees from straight up
+        // If pointing downward (y >= 0), clamp to the boundary
+        val maxAngleRad = Math.toRadians(Constants.MAX_LAUNCH_ANGLE.toDouble()).toFloat()
+        val angleFromUp = atan2(abs(launchDirection.x), -launchDirection.y) // angle from negative Y axis
+        if (launchDirection.y >= 0f || angleFromUp > maxAngleRad) {
+            // Clamp to boundary: preserve left/right direction
+            val sign = if (launchDirection.x >= 0f) 1f else -1f
+            launchDirection = Vector2(sign * sin(maxAngleRad), -cos(maxAngleRad))
+        }
 
         // Map pull distance to velocity magnitude (longer pull = faster launch)
         val velocityMag = MathUtils.mapRange(

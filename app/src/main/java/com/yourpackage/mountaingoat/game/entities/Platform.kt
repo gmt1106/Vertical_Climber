@@ -20,9 +20,7 @@ class Platform(
 
     enum class PlatformType {
         NORMAL,     // Standard platform
-        MOVING,     // Moves horizontally
-        BREAKING,   // Breaks after landing
-        BOUNCY      // Launches player higher
+        MOVING      // Moves horizontally
     }
 
     // Movement properties for MOVING platforms
@@ -31,14 +29,6 @@ class Platform(
     var moveRange: Float = 100f // how far to move from start
     private var startX: Float = x
 
-    // Breaking platform properties
-    var breaking: Boolean = false
-    private var breakTimer: Float = 0f
-    private val breakDelay: Float = 0.5f // time before platform disappears
-
-    // Bouncy platform properties
-    val bounceMultiplier: Float = 1.5f
-
     init {
         startX = x
     }
@@ -46,8 +36,7 @@ class Platform(
     override fun update(deltaTime: Float) {
         when (type) {
             PlatformType.MOVING -> updateMovement(deltaTime)
-            PlatformType.BREAKING -> updateBreaking(deltaTime)
-            else -> {} // NORMAL and BOUNCY don't need updates
+            else -> {}
         }
     }
 
@@ -68,59 +57,21 @@ class Platform(
     }
 
     /**
-     * Update breaking state
-     */
-    private fun updateBreaking(deltaTime: Float) {
-        if (breaking) {
-            breakTimer += deltaTime
-            if (breakTimer >= breakDelay) {
-                active = false
-            }
-        }
-    }
-
-    /**
      * Called when player lands on this platform
      */
     fun onPlayerLand(player: Player) {
-        when (type) {
-            PlatformType.NORMAL, PlatformType.MOVING -> {
-                // Just land normally
-                player.land()
-            }
-            PlatformType.BREAKING -> {
-                player.land()
-                breaking = true
-            }
-            PlatformType.BOUNCY -> {
-                // Launch player with extra bounce
-                val bounceVelocity = Vector2(
-                    player.velocity.x,
-                    -Math.abs(player.velocity.y) * bounceMultiplier
-                )
-                player.launch(bounceVelocity)
-            }
-        }
+        player.land()
     }
 
     override fun getAsciiRepresentation(): List<String> {
-        // Generate platform string based on width
-        val charCount = (width / Constants.CHAR_WIDTH).toInt().coerceAtLeast(3)
-
-        val platformChar = when (type) {
-            PlatformType.NORMAL -> '='
-            PlatformType.MOVING -> '≈'
-            PlatformType.BREAKING -> if (breaking) '·' else '-'
-            PlatformType.BOUNCY -> '▓'
+        return when (type) {
+            PlatformType.NORMAL -> AsciiArt.PLATFORM_NORMAL
+            PlatformType.MOVING -> AsciiArt.PLATFORM_MOVING
         }
-
-        return listOf(platformChar.toString().repeat(charCount))
     }
 
     override fun reset() {
         super.reset()
-        breaking = false
-        breakTimer = 0f
         moveDirection = 1
         position.x = startX
     }
@@ -132,8 +83,6 @@ class Platform(
         position.set(x, y)
         width = platformWidth
         active = true
-        breaking = false
-        breakTimer = 0f
         startX = x
         moveDirection = 1
     }

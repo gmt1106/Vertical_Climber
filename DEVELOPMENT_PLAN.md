@@ -249,32 +249,22 @@ app/src/main/java/com/yourpackage/jumpergame/
 ### Phase 5: Game Systems (Distance Tracking, Obstacles, Game Over)
 **Goal**: Complete game mechanics with simplified progression
 
-1. **Level Progression** (Optional - Keep Simple)
-   - Option A: Remove level system entirely (constant difficulty)
-   - Option B: Simplify to distance milestones
-     - Every 100 meters = milestone marker (visual feedback only)
+1. **Level Progression**
+   - Simplify to distance milestones
+     - Every 50 meters = milestone marker (visual feedback only)
      - No difficulty changes, consistent platform types
-     - Display: "100m", "200m" milestone messages
-   - No LevelManager needed if using Option A
-   - Keep platform generation consistent throughout
+     - Display: "50m", "100m" milestone messages
 
 2. **Obstacles**
    - Create `Obstacle.kt`: Entity subclass
-     - Types: SPIKE (static), ENEMY (moving), SAW (rotating)
+     - Types: SPIKE (static), SAW (rotating)
      - Properties: type, moveSpeed
-     - ASCII art: " /\ " (spike), " >< " (enemy)
+     - ASCII art: " /\ " (spike)
      - Methods: update(deltaTime), onPlayerHit()
      - **No damage system**: Hit = instant death
+     - Also need to update the platform creating logic so that when near the spiked platform, step-able platform exist 
 
-3. **Game Over Logic** (One-Attempt Mode)
-   - Instant death conditions:
-     - Collision with any obstacle = instant death
-     - Fall off screen (Y > camera bottom) = instant death
-     - Auto-scroll death (fall behind screen) = instant death
-   - Remove invulnerability mechanic (not needed)
-   - On death: Save high distance (meters), show game over screen
-
-4. **Pause/Resume**
+3. **Pause/Resume**
    - GameEngine: pause() / resume() methods
    - GameThread: suspend/resume loop
    - Touch during JUMPING: Pause game, show menu overlay

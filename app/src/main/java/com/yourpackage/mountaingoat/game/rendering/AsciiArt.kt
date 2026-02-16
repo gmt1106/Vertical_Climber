@@ -120,13 +120,21 @@ object AsciiArt {
     )
 
     // Platform Types
-    const val PLATFORM_NORMAL = "=========="
-    const val PLATFORM_MOVING = "≈≈≈≈≈≈≈≈≈≈"
-    const val PLATFORM_BREAKING = "----------"
-    const val PLATFORM_BOUNCY = "▓▓▓▓▓▓▓▓▓▓"
+    val PLATFORM_NORMAL = listOf(
+        "░▒▒▓█▒▒█▒▒░▒█▓▒███▓▒░",
+        " ░▓█▓█▒▒░ ░▒▒░▒▓▓▓▒░",
+        "  ░▓▓█▒░   ░▒░ ▒▓▒░",
+        "  ░▒ ▓ ░   ░░  ░▒░",
+    )
+    val PLATFORM_MOVING  = listOf(
+        " ,______________,",
+        "//--------------\\\\",
+        "\\\\______________//",
+        " `--------------`",
+    )
 
     // Ground Types
-    const val GROUND = ":.. ::.:. ::.:.:.: .:.:."
+    const val GROUND = "░░▒▓▒█▓▓█▒▒░███▒▒░▒█▓░░▒██░░▓▒░"
 
     // Game Over
     val GAME_OVER = listOf(

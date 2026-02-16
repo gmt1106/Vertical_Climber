@@ -15,6 +15,7 @@ object Constants {
     const val MIN_LAUNCH_VELOCITY = 300f // minimum launch speed
     const val MAX_LAUNCH_VELOCITY = 1500f // maximum launch speed
     const val LAUNCH_FORCE_MULTIPLIER = 10f // multiplier for pull distance to velocity
+    const val MAX_LAUNCH_ANGLE = 70f // max degrees from vertical (straight up) for launch direction
     const val TRAJECTORY_POINTS = 30 // number of points for trajectory calculation
     const val TRAJECTORY_TIME_STEP = 0.05f // time between trajectory points
 
@@ -41,8 +42,7 @@ object Constants {
     // MAX_JUMP_HEIGHT = (1500)² / (2 * 980) ≈ 1148 pixels
     // MIN_JUMP_HEIGHT = (300)² / (2 * 980) ≈ 46 pixels
     const val PLATFORM_MIN_SPACING = 400f // 40% of maximum jump height and larger than minimum jump height (reachable with weak pull)
-    const val PLATFORM_MAX_SPACING = 700f // 70% of maximum jump height (challenging but achievable)
-    const val PLATFORM_HORIZONTAL_SPREAD = 0.7f // platforms spawn within screen width * this value
+    const val PLATFORM_MAX_SPACING = 600f // 70% of maximum jump height (challenging but achievable)
 
     // Camera Constants
     const val CAMERA_FOLLOW_THRESHOLD = 0.5f // follow when player is above this % of screen
