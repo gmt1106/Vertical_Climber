@@ -36,8 +36,14 @@ object CollisionDetector {
 
         // Player's bottom must be at or above platform top (landing from above)
         // Allow some tolerance for smooth landing
-        val tolerance = 20f
-        return playerBounds.bottom <= platformBounds.top + tolerance
+        val tolerance = Constants.PLATFORM_COLLISION_TOLERANCE
+        if (playerBounds.bottom > platformBounds.top + tolerance) return false
+
+        // At least half of goat's collision width must overlap the platform horizontally
+        val overlapLeft = maxOf(playerBounds.left, platformBounds.left)
+        val overlapRight = minOf(playerBounds.right, platformBounds.right)
+        val overlapWidth = overlapRight - overlapLeft
+        return overlapWidth >= player.width * Constants.PLATFORM_X_OVERLAP_RATIO
     }
 
     /**

@@ -246,30 +246,37 @@ app/src/main/java/com/yourpackage/jumpergame/
 
 **Verification**: Goat cannot move past left/right screen edges and slides down along walls. First platform appears above goat at game start. Camera follows player smoothly. Auto-scroll forces upward movement. Player dies if falling behind screen.
 
-### Phase 5: Game Systems (Distance Tracking, Obstacles, Game Over)
-**Goal**: Complete game mechanics with simplified progression
+### Phase 5: Game Systems (Moving Platforms, Obstacles, Distance Milestones)
+**Goal**: Complete game mechanics with moving platforms, obstacles, and simplified progression
 
-1. **Level Progression**
+1. **Moving Platform Behavior**
+   - **Visual rotation**: Alternate between `PLATFORM_MOVING_1` and `PLATFORM_MOVING_2` ASCII art on a timer (e.g. every 0.3s) to create a conveyor belt animation effect
+   - **Left-only movement**: MOVING platforms slide left at a constant speed (remove bidirectional bouncing)
+   - **Goat carried by platform**: When goat is standing on a MOVING platform (READY/AIMING state), goat's X position shifts left at the platform's move speed — like a real conveyor belt
+   - **Fall off edge**: When goat's feet no longer overlap the platform horizontally, goat falls off naturally (gravity kicks in, transitions to JUMPING state)
+   - Files: `Platform.kt` (animation timer, left-only movement, art switching), `GameEngine.kt` (apply platform velocity to player when standing on MOVING platform, detect falling off edge)
+
+2. **Spiked Platforms (Obstacles)**
+   - Not a separate entity — spikes are a property of a platform
+   - Add `hasSpikes: Boolean` to `Platform.kt`
+   - ASCII art: `OBSTACLE_SPIKE = "/\"` constant in `AsciiArt.kt`, repeated on top of normal platform art to match platform width
+   - Rendering: spike row rendered above the normal platform lines
+   - On landing: if `hasSpikes` is true → instant death (game over)
+   - Platform generation: ensure a step-able (non-spiked) platform always exists nearby when a spiked platform is generated
+   - Files: `Platform.kt` (hasSpikes flag, spike rendering), `GameEngine.kt` (death check on spiked landing), `AsciiArt.kt` (OBSTACLE_SPIKE constant)
+
+3. **Level Progression**
    - Simplify to distance milestones
      - Every 50 meters = milestone marker (visual feedback only)
      - No difficulty changes, consistent platform types
      - Display: "50m", "100m" milestone messages
 
-2. **Obstacles**
-   - Create `Obstacle.kt`: Entity subclass
-     - Types: SPIKE (static), SAW (rotating)
-     - Properties: type, moveSpeed
-     - ASCII art: " /\ " (spike)
-     - Methods: update(deltaTime), onPlayerHit()
-     - **No damage system**: Hit = instant death
-     - Also need to update the platform creating logic so that when near the spiked platform, step-able platform exist 
-
-3. **Pause/Resume**
+4. **Pause/Resume**
    - GameEngine: pause() / resume() methods
    - GameThread: suspend/resume loop
    - Touch during JUMPING: Pause game, show menu overlay
 
-**Verification**: Distance increases correctly (meters displayed). Obstacles cause instant death. Auto-scroll death triggers. High distance saved. No health system present.
+**Verification**: Moving platforms slide left with conveyor animation. Goat rides moving platform and falls off edge. Distance milestones display correctly. Obstacles cause instant death.
 
 ### Phase 6: UI & Navigation
 **Goal**: Complete menu system and persistent storage
@@ -314,42 +321,6 @@ app/src/main/java/com/yourpackage/jumpergame/
 
 **Verification**: Navigate between all screens. High scores save/load correctly. In-game HUD displays accurate info. Back button pauses game.
 
-### Phase 7: Polish & Optimization
-**Goal**: Production-ready game
-
-1. **Visual Polish**
-   - Particle effects (ASCII characters falling)
-   - Landing animation (brief scale effect)
-   - Platform breaking animation
-   - Smooth transitions between states
-
-2. **Performance Optimization**
-   - Profile with Android Profiler
-   - Optimize object allocations in game loop
-   - Object pooling for all entities
-   - Spatial partitioning for collision checks
-   - Canvas drawing optimization (batch text rendering)
-
-3. **Difficulty Balancing**
-   - Playtesting sessions
-   - Adjust constants:
-     - Platform spacing
-     - Launch force multiplier
-     - Gravity strength
-     - Level progression speed
-   - Ensure first 3 levels are easy (tutorial feel)
-
-4. **Bug Fixes**
-   - Edge cases: Rapid touches, minimizing/resuming
-   - Screen size variations testing
-   - Memory leak detection
-   - Collision false positives/negatives
-
-5. **Unit Tests**
-   - PhysicsEngineTest: Gravity, trajectory calculations
-   - CollisionDetectorTest: Platform landing, obstacle hits
-   - SlingshotManagerTest: Velocity calculation, trajectory
-   - ScoreManagerTest: Score updates, combo system
 
 **Verification**: Game runs smoothly at 60 FPS. No crashes or memory leaks. Difficulty feels balanced. All edge cases handled.
 

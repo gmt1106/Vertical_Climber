@@ -9,6 +9,7 @@ import com.yourpackage.mountaingoat.game.entities.Platform
 import com.yourpackage.mountaingoat.game.entities.Player
 import com.yourpackage.mountaingoat.game.physics.CollisionDetector
 import com.yourpackage.mountaingoat.game.physics.PhysicsEngine
+import com.yourpackage.mountaingoat.game.rendering.AsciiArt
 import com.yourpackage.mountaingoat.game.rendering.AsciiRenderer
 import com.yourpackage.mountaingoat.game.systems.SlingshotManager
 import com.yourpackage.mountaingoat.utils.Constants
@@ -30,15 +31,31 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     private val slingshotManager: SlingshotManager
     private val ground: Ground
 
+    // Tracks the state before pausing so resume restores it correctly
+    private var stateBeforePause: GameState = GameState.READY
+
     // Game data
     private var distanceMeters: Float = 0f
     private var startingY: Float = 0f
     private var autoScrollActive: Boolean = false
+    private var currentPlatform: Platform? = null
+    private var lastMilestone: Int = 0
+    private var milestoneTimer: Float = 0f
+    private var lastGeneratedSpiked: Boolean = false
 
     init {
-        // Initialize player so feet are STARTING_POSITION_Y pixels from the bottom of screen
+        // Initialize ground at the bottom of the visible screen (in world coords)
+        val groundHeight = (AsciiArt.GROUND.size) * Constants.CHAR_HEIGHT
+        ground = Ground(
+            x = 0f,
+            y = screenHeight.toFloat() - groundHeight,
+            groundWidth = screenWidth.toFloat()
+        )
+
+        // Initialize player so feet align with ground top
         player = Player(0f, 0f) // temporary position, will adjust after dimensions are known
-        val startY = screenHeight - Constants.STARTING_POSITION_Y - player.height
+        val groundTop = ground.position.y
+        val startY = groundTop - player.height - Constants.CHAR_HEIGHT
         val startX = (screenWidth / 2f) - (player.width / 2f)
         player.position.set(startX, startY)
         startingY = startY
@@ -46,14 +63,6 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
         // Initialize slingshot manager (now handles input too)
         slingshotManager = SlingshotManager(
             getPlayerPosition = { player.position.copy() }
-        )
-
-        // Initialize ground at the bottom of the visible screen (in world coords)
-        // Camera starts at 0, screen goes from 0 to screenHeight, so ground at bottom is screenHeight
-        ground = Ground(
-            x = 0f,
-            y = screenHeight.toFloat() - 30f, // At bottom of initial visible screen
-            groundWidth = screenWidth.toFloat()
         )
 
         // Camera starts at origin (player is at screenHeight - STARTING_POSITION_Y, so visible near bottom)
@@ -80,10 +89,10 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
 
          when (gameState) {
             GameState.READY -> {
-                // Waiting for player input
+                updateMovingPlatformCarry(deltaTime)
             }
             GameState.AIMING -> {
-                // Slingshot is being pulled (handled by input)
+                updateMovingPlatformCarry(deltaTime)
             }
             GameState.JUMPING -> {
                 // Update all entities
@@ -107,6 +116,11 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
                 // Check for game over (one attempt - fall off screen = death)
                 if (isPlayerOffScreen()) {
                     gameState = GameState.GAME_OVER
+                }
+
+                // Decay milestone display timer
+                if (milestoneTimer > 0f) {
+                    milestoneTimer -= deltaTime
                 }
             }
             GameState.PAUSED -> {
@@ -147,19 +161,50 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     private fun checkCollisions() {
         val platforms = entityManager.getActivePlatforms()
 
+        // Check ground collision while ground is still visible
+        if (player.velocity.y > 0) {
+            val groundTop = ground.position.y
+            val playerBottom = player.position.y + player.height
+            if (playerBottom >= groundTop) {
+                player.position.y = groundTop - player.height - Constants.CHAR_HEIGHT
+                player.land()
+                currentPlatform = null
+                gameState = GameState.READY
+                return
+            }
+        }
+
         for (platform in platforms) {
             if (CollisionDetector.checkPlatformCollision(player, platform)) {
+                // Spiked platform = instant death
+                if (platform.hasSpikes) {
+                    gameState = GameState.GAME_OVER
+                    return
+                }
+
                 // Player landed on platform
                 val landingY = CollisionDetector.getCollisionPoint(player, platform)
                 player.position.y = landingY
 
                 // Handle platform-specific landing logic
                 platform.onPlayerLand(player)
+                currentPlatform = platform
+
+                // Start auto-scroll on first platform landing
+                if (!autoScrollActive) {
+                    autoScrollActive = true
+                }
 
                 // Update distance only on landing (startingY is high, landingY is lower = higher up)
                 val landedDistance = (startingY - landingY) / Constants.PIXELS_PER_METER
                 if (landedDistance > distanceMeters) {
                     distanceMeters = landedDistance
+                    // Check for milestone
+                    val newMilestone = (distanceMeters / Constants.MILESTONE_INTERVAL_METERS).toInt()
+                    if (newMilestone > lastMilestone) {
+                        lastMilestone = newMilestone
+                        milestoneTimer = Constants.MILESTONE_DISPLAY_DURATION
+                    }
                 }
 
                 // Transition to READY state for next slingshot
@@ -178,11 +223,16 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     fun render(canvas: Canvas) {
         val entities = mutableListOf<Entity>(player, ground)
         entities.addAll(entityManager.getAllActiveEntities())
+
+        val milestone = if (milestoneTimer > 0f) "${(lastMilestone * Constants.MILESTONE_INTERVAL_METERS).toInt()}m!" else null
+
         renderer.render(
             canvas,
             entities,
             distanceMeters,
-            isGameOver = gameState == GameState.GAME_OVER
+            isGameOver = gameState == GameState.GAME_OVER,
+            isPaused = gameState == GameState.PAUSED,
+            milestoneText = milestone
         )
     }
 
@@ -192,7 +242,7 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
     private fun generateInitialPlatforms() {
 
         val startX = (screenWidth / 2f) - (player.width / 2f)
-        val playerY = screenHeight - Constants.STARTING_POSITION_Y - player.height
+        val playerY = ground.position.y - player.height
 
         // Create first platform above player (lower Y = higher on screen)
         val firstPlatformY = playerY - Constants.PLATFORM_MIN_SPACING
@@ -244,11 +294,22 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
 
             val newY = highestPlatformY - spacing
 
+            // Randomly assign platform type
+            val isMoving = Random.nextFloat() < Constants.MOVING_PLATFORM_CHANCE
+            val type = if (isMoving) Platform.PlatformType.MOVING else Platform.PlatformType.NORMAL
+
+            // Spikes only on NORMAL platforms, and never two spiked in a row
+            val hasSpikes = !isMoving &&
+                    !lastGeneratedSpiked &&
+                    Random.nextFloat() < Constants.SPIKE_PLATFORM_CHANCE
+            lastGeneratedSpiked = hasSpikes
+
             entityManager.createPlatform(
                 x = platformX,
                 y = newY,
                 width = platformWidth,
-                type = Platform.PlatformType.NORMAL
+                type = type,
+                hasSpikes = hasSpikes
             )
         }
     }
@@ -257,12 +318,30 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
      * Handle touch input
      */
     fun handleTouchEvent(event: MotionEvent): Boolean {
+        // Pause button tap (works in any state except GAME_OVER)
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            val bounds = renderer.pauseButtonBounds
+            if (bounds.contains(event.x, event.y)) {
+                if (gameState == GameState.PAUSED) {
+                    resume()
+                } else if (gameState != GameState.GAME_OVER) {
+                    pause()
+                }
+                return true
+            }
+        }
+
         // Game over: tap to restart
         if (gameState == GameState.GAME_OVER) {
             if (event.action == MotionEvent.ACTION_DOWN) {
                 reset()
                 return true
             }
+            return false
+        }
+
+        // While paused, ignore all other input
+        if (gameState == GameState.PAUSED) {
             return false
         }
 
@@ -276,10 +355,43 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
             val velocity = slingshotManager.getLaunchVelocity()
             player.launch(velocity)
             gameState = GameState.JUMPING
-            autoScrollActive = true
+            currentPlatform = null
         }
 
         return handled
+    }
+
+    /**
+     * Update goat position when standing on a MOVING platform (conveyor belt effect)
+     */
+    private fun updateMovingPlatformCarry(deltaTime: Float) {
+        val platform = currentPlatform ?: return
+        if (platform.type != Platform.PlatformType.MOVING || !platform.active) return
+
+        // Update the moving platform
+        platform.update(deltaTime)
+
+        // Carry goat left at the platform's speed
+        player.position.x -= platform.moveSpeed * deltaTime
+
+        // Clamp player to screen boundaries
+        if (player.position.x < 0f) {
+            player.position.x = 0f
+        } else if (player.position.x + player.visualWidth > screenWidth) {
+            player.position.x = screenWidth - player.visualWidth
+        }
+
+        // Check if goat's feet still overlap the platform horizontally
+        val feetLeft = player.position.x + player.collisionOffsetX
+        val feetRight = feetLeft + player.width
+        val platLeft = platform.position.x
+        val platRight = platLeft + platform.width
+        if (feetRight < platLeft || feetLeft > platRight) {
+            // Goat fell off the platform edge
+            player.velocity.y = Constants.FALL_OFF_PLATFORM_VELOCITY // small downward velocity to start falling
+            gameState = GameState.JUMPING
+            currentPlatform = null
+        }
     }
 
     /**
@@ -293,7 +405,8 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
      * Pause the game
      */
     fun pause() {
-        if (gameState == GameState.JUMPING || gameState == GameState.READY) {
+        if (gameState != GameState.PAUSED && gameState != GameState.GAME_OVER) {
+            stateBeforePause = gameState
             gameState = GameState.PAUSED
         }
     }
@@ -303,7 +416,7 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
      */
     fun resume() {
         if (gameState == GameState.PAUSED) {
-            gameState = GameState.JUMPING
+            gameState = stateBeforePause
         }
     }
 
@@ -312,12 +425,17 @@ class GameEngine(private val screenWidth: Int, private val screenHeight: Int) {
      */
     fun reset() {
         gameState = GameState.READY
+        stateBeforePause = GameState.READY
         distanceMeters = 0f
         autoScrollActive = false
+        currentPlatform = null
+        lastMilestone = 0
+        milestoneTimer = 0f
+        lastGeneratedSpiked = false
 
         player.reset()
         player.active = true
-        val startY = screenHeight - Constants.STARTING_POSITION_Y - player.height
+        val startY = ground.position.y - player.height - Constants.CHAR_HEIGHT
         val startX = (screenWidth / 2f) - (player.width / 2f)
         player.position.set(startX, startY)
         player.velocity.set(0f, 0f)

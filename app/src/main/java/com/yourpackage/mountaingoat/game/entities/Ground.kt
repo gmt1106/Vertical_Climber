@@ -15,7 +15,7 @@ class Ground(
 ) : Entity(
     position = Vector2(x, y),
     width = groundWidth,
-    height = 30f
+    height = (AsciiArt.GROUND.size) * Constants.CHAR_HEIGHT
 ) {
 
     override fun update(deltaTime: Float) {
@@ -23,13 +23,12 @@ class Ground(
     }
 
     override fun getAsciiRepresentation(): List<String> {
-        // Repeat the ground pattern to fill the screen width
-        val pattern = AsciiArt.GROUND
-        val patternCharCount = pattern.length
+        // Repeat each ground pattern line to fill the screen width
         val totalCharsNeeded = (width / Constants.CHAR_WIDTH).toInt()
-        val repetitions = (totalCharsNeeded / patternCharCount) + 2 // +2 for safety
-
-        return listOf(pattern.repeat(repetitions))
+        return AsciiArt.GROUND.map { line ->
+            val repetitions = (totalCharsNeeded / line.length) + 2
+            line.repeat(repetitions)
+        }
     }
 
     override fun reset() {

@@ -3,6 +3,7 @@ package com.yourpackage.mountaingoat.game.entities
 import com.yourpackage.mountaingoat.game.rendering.AsciiArt
 import com.yourpackage.mountaingoat.utils.Constants
 import com.yourpackage.mountaingoat.utils.Vector2
+import kotlin.random.Random
 
 /**
  * Platform entity that player can land on
@@ -11,7 +12,7 @@ class Platform(
     x: Float = 0f,
     y: Float = 0f,
     platformWidth: Float = Constants.PLATFORM_MIN_WIDTH,
-    val type: PlatformType = PlatformType.NORMAL
+    var type: PlatformType = PlatformType.NORMAL
 ) : Entity(
     position = Vector2(x, y),
     width = platformWidth,
@@ -20,14 +21,22 @@ class Platform(
 
     enum class PlatformType {
         NORMAL,     // Standard platform
-        MOVING      // Moves horizontally
+        MOVING      // Slides left like a conveyor belt
     }
 
     // Movement properties for MOVING platforms
-    var moveSpeed: Float = 50f // pixels per second
-    var moveDirection: Int = 1 // 1 = right, -1 = left
-    var moveRange: Float = 100f // how far to move from start
+    var moveSpeed: Float = Constants.MOVING_PLATFORM_SPEED
     private var startX: Float = x
+
+    // Animation for MOVING platforms
+    private var animationTimer: Float = 0f
+    private var useAltFrame: Boolean = false
+
+    // Normal platform art variant (0, 1, or 2)
+    private var normalVariant: Int = Random.nextInt(3)
+
+    // Spike obstacle on top of platform
+    var hasSpikes: Boolean = false
 
     init {
         startX = x
@@ -35,24 +44,28 @@ class Platform(
 
     override fun update(deltaTime: Float) {
         when (type) {
-            PlatformType.MOVING -> updateMovement(deltaTime)
+            PlatformType.MOVING -> {
+                updateAnimation(deltaTime)
+            }
             else -> {}
         }
     }
 
     /**
-     * Update movement for moving platforms
+     * Update movement — slides left only
      */
     private fun updateMovement(deltaTime: Float) {
-        position.x += moveSpeed * moveDirection * deltaTime
+        position.x -= moveSpeed * deltaTime
+    }
 
-        // Reverse direction at boundaries
-        if (position.x > startX + moveRange) {
-            position.x = startX + moveRange
-            moveDirection = -1
-        } else if (position.x < startX - moveRange) {
-            position.x = startX - moveRange
-            moveDirection = 1
+    /**
+     * Toggle between PLATFORM_MOVING_1 and PLATFORM_MOVING_2 for conveyor animation
+     */
+    private fun updateAnimation(deltaTime: Float) {
+        animationTimer += deltaTime
+        if (animationTimer >= Constants.PLATFORM_ANIMATION_INTERVAL) {
+            useAltFrame = !useAltFrame
+            animationTimer = 0f
         }
     }
 
@@ -64,26 +77,48 @@ class Platform(
     }
 
     override fun getAsciiRepresentation(): List<String> {
-        return when (type) {
-            PlatformType.NORMAL -> AsciiArt.PLATFORM_NORMAL
-            PlatformType.MOVING -> AsciiArt.PLATFORM_MOVING
+        val baseArt = when (type) {
+            PlatformType.NORMAL -> when (normalVariant) {
+                0 -> AsciiArt.PLATFORM_NORMAL_1
+                1 -> AsciiArt.PLATFORM_NORMAL_2
+                else -> AsciiArt.PLATFORM_NORMAL_3
+            }
+            PlatformType.MOVING -> if (useAltFrame) AsciiArt.PLATFORM_MOVING_2 else AsciiArt.PLATFORM_MOVING_1
         }
+
+        if (!hasSpikes) return baseArt
+
+        // Prepend spike rows on top of platform art
+        val platformCharWidth = baseArt.maxOf { it.length }
+        val spikePattern = AsciiArt.OBSTACLE_SPIKE
+        val patternWidth = spikePattern.maxOf { it.length }
+        val spikeRows = spikePattern.map { line ->
+            line.repeat((platformCharWidth / patternWidth) + 1).take(platformCharWidth)
+        }
+        return spikeRows + baseArt
     }
 
     override fun reset() {
         super.reset()
-        moveDirection = 1
+        type = PlatformType.NORMAL
         position.x = startX
+        animationTimer = 0f
+        useAltFrame = false
+        hasSpikes = false
     }
 
     /**
      * Initialize platform at a new position
      */
-    fun init(x: Float, y: Float, platformWidth: Float, platformType: PlatformType) {
+    fun init(x: Float, y: Float, platformWidth: Float, platformType: PlatformType, spikes: Boolean = false) {
         position.set(x, y)
         width = platformWidth
+        type = platformType
+        normalVariant = Random.nextInt(3)
         active = true
         startX = x
-        moveDirection = 1
+        animationTimer = 0f
+        useAltFrame = false
+        hasSpikes = spikes
     }
 }

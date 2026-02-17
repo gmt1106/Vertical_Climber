@@ -65,7 +65,8 @@ class EntityManager {
         x: Float,
         y: Float,
         width: Float,
-        type: Platform.PlatformType = Platform.PlatformType.NORMAL
+        type: Platform.PlatformType = Platform.PlatformType.NORMAL,
+        hasSpikes: Boolean = false
     ): Platform {
         // Try to get from pool
         val platform = if (platformPool.isNotEmpty()) {
@@ -75,7 +76,7 @@ class EntityManager {
         }
 
         // Initialize platform
-        platform.init(x, y, width, type)
+        platform.init(x, y, width, type, hasSpikes)
         platforms.add(platform)
 
         return platform

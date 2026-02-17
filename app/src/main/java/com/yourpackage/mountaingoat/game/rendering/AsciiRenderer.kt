@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import com.yourpackage.mountaingoat.game.entities.Entity
+import android.graphics.RectF
 import com.yourpackage.mountaingoat.utils.Constants
 import com.yourpackage.mountaingoat.utils.Vector2
 import androidx.core.graphics.toColorInt
@@ -33,6 +34,13 @@ class AsciiRenderer(private val screenWidth: Int, private val screenHeight: Int)
         isAntiAlias = true
     }
 
+    private val milestonePaint = Paint().apply {
+        color = Color.WHITE
+        textSize = Constants.TEXT_SIZE_MILESTONE
+        typeface = Typeface.MONOSPACE
+        isAntiAlias = true
+    }
+
     private val overlayPaint = Paint().apply {
         color = Color.argb(180, 0, 0, 0)
     }
@@ -56,6 +64,39 @@ class AsciiRenderer(private val screenWidth: Int, private val screenHeight: Int)
         isAntiAlias = true
     }
 
+    private val playButtonPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = Constants.TEXT_SIZE_UI * 2f
+        typeface = Typeface.MONOSPACE
+        isAntiAlias = true
+    }
+
+    private val pausedOverlayPaint = Paint().apply {
+        color = Color.argb(150, 0, 0, 0)
+    }
+
+    private val pausedTextPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = Constants.TEXT_SIZE_MILESTONE
+        typeface = Typeface.MONOSPACE
+        isAntiAlias = true
+    }
+
+    private val pausedSubPaint = Paint().apply {
+        color = Color.LTGRAY
+        textSize = Constants.TEXT_SIZE_GAME_OVER_SUB
+        typeface = Typeface.MONOSPACE
+        isAntiAlias = true
+    }
+
+    // Pause button bounds (top-right corner)
+    val pauseButtonBounds = RectF(
+        screenWidth - Constants.PAUSE_BUTTON_PADDING - Constants.PAUSE_BUTTON_SIZE,
+        Constants.PAUSE_BUTTON_Y,
+        screenWidth - Constants.PAUSE_BUTTON_PADDING,
+        Constants.PAUSE_BUTTON_Y + Constants.PAUSE_BUTTON_SIZE
+    )
+
     // Camera position (Y coordinate of top of screen in world space)
     var cameraPosY: Float = 0f
 
@@ -66,7 +107,9 @@ class AsciiRenderer(private val screenWidth: Int, private val screenHeight: Int)
         canvas: Canvas,
         entities: List<Entity>,
         distanceMeters: Float = 0f,
-        isGameOver: Boolean = false
+        isGameOver: Boolean = false,
+        isPaused: Boolean = false,
+        milestoneText: String? = null
     ) {
         // Clear screen
         canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), backgroundPaint)
@@ -79,7 +122,12 @@ class AsciiRenderer(private val screenWidth: Int, private val screenHeight: Int)
         }
 
         // Render UI overlay
-        renderUI(canvas, distanceMeters)
+        renderUI(canvas, distanceMeters, isPaused, milestoneText)
+
+        // Render paused overlay
+        if (isPaused) {
+            renderPaused(canvas)
+        }
 
         // Render game over overlay on top of everything
         if (isGameOver) {
@@ -104,13 +152,54 @@ class AsciiRenderer(private val screenWidth: Int, private val screenHeight: Int)
     }
 
     /**
-     * Render UI overlay (distance only)
+     * Render UI overlay (distance top-left, pause button top-right)
      */
-    private fun renderUI(canvas: Canvas, distanceMeters: Float) {
-        // Top-center: Distance in meters
-        val distanceText = "${distanceMeters.toInt()}m"
-        val distanceWidth = uiPaint.measureText(distanceText)
-        canvas.drawText(distanceText, (screenWidth - distanceWidth) / 2, 50f, uiPaint)
+    private fun renderUI(canvas: Canvas, distanceMeters: Float, isPaused: Boolean, milestoneText: String? = null) {
+        // Top-left: Distance in meters
+        val distanceText = "> ${distanceMeters.toInt()}m"
+        canvas.drawText(distanceText, Constants.PAUSE_BUTTON_PADDING, 50f, uiPaint)
+
+        // Top-right: Pause / Play button
+        if (isPaused) {
+            val buttonText = "▶"
+            val buttonTextWidth = playButtonPaint.measureText(buttonText)
+            val buttonX = pauseButtonBounds.right - buttonTextWidth
+            val buttonY = pauseButtonBounds.bottom - (pauseButtonBounds.height() - playButtonPaint.textSize) / 2
+            canvas.drawText(buttonText, buttonX, buttonY, playButtonPaint)
+        } else {
+            val buttonText = "▐▐ "
+            val buttonTextWidth = uiPaint.measureText(buttonText)
+            val buttonX = pauseButtonBounds.right - buttonTextWidth
+            val buttonY = pauseButtonBounds.bottom - (pauseButtonBounds.height() - uiPaint.textSize) / 2
+            canvas.drawText(buttonText, buttonX, buttonY, uiPaint)
+        }
+
+        // Milestone message
+        if (milestoneText != null) {
+            val milestoneWidth = milestonePaint.measureText(milestoneText)
+            canvas.drawText(milestoneText, (screenWidth - milestoneWidth) / 2, screenHeight / 2f, milestonePaint)
+        }
+    }
+
+    /**
+     * Render paused overlay
+     */
+    private fun renderPaused(canvas: Canvas) {
+        // Semi-transparent dark overlay
+        canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), pausedOverlayPaint)
+
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+
+        // "PAUSED" text
+        val pausedText = "PAUSED"
+        val pausedWidth = pausedTextPaint.measureText(pausedText)
+        canvas.drawText(pausedText, centerX - pausedWidth / 2, centerY, pausedTextPaint)
+
+        // "Tap ▶ to resume" hint
+        val hintText = "Tap  ▶  to resume"
+        val hintWidth = pausedSubPaint.measureText(hintText)
+        canvas.drawText(hintText, centerX - hintWidth / 2, centerY + 60f, pausedSubPaint)
     }
 
     /**

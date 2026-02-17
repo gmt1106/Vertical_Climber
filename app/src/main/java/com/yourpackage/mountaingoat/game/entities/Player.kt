@@ -29,6 +29,7 @@ class Player(startX: Float, startY: Float) : Entity(
     var direction: Direction = Direction.RIGHT
 
     init {
+        updateCollisionFromIdle()
         updateDimensions()
     }
 
@@ -37,7 +38,7 @@ class Player(startX: Float, startY: Float) : Entity(
      * Height = (lines - 1) * CHAR_HEIGHT so that the last line baseline aligns with the bottom
      * Width and offset based on the feet line (last line) for accurate platform collision
      */
-    // Horizontal offset from position.x to where the feet start
+    // Horizontal offset from position.x to where the feet start (based on IDLE art)
     var collisionOffsetX: Float = 0f
         private set
 
@@ -45,17 +46,19 @@ class Player(startX: Float, startY: Float) : Entity(
     var visualWidth: Float = 0f
         private set
 
-    private fun updateDimensions() {
-        val asciiLines = getAsciiRepresentation()
-        height = (asciiLines.size - 1) * Constants.CHAR_HEIGHT
-
-        // Use the last line (feet of the goat) to determine collision width and offset
-        val feetLine = asciiLines.last()
+    private fun updateCollisionFromIdle() {
+        val idleArt = if (direction == Direction.RIGHT) AsciiArt.GOAT_IDLE_RIGHT else AsciiArt.GOAT_IDLE_LEFT
+        val feetLine = idleArt.last()
         val leadingSpaces = feetLine.length - feetLine.trimStart().length
         val feetTrimmed = feetLine.trim()
 
         width = feetTrimmed.length * Constants.CHAR_WIDTH
         collisionOffsetX = leadingSpaces * Constants.CHAR_WIDTH
+    }
+
+    private fun updateDimensions() {
+        val asciiLines = getAsciiRepresentation()
+        height = (asciiLines.size - 1) * Constants.CHAR_HEIGHT
         visualWidth = asciiLines.maxOf { it.length } * Constants.CHAR_WIDTH
     }
 
@@ -104,6 +107,7 @@ class Player(startX: Float, startY: Float) : Entity(
             direction = Direction.LEFT
         }
 
+        updateCollisionFromIdle()
         updateDimensions()
     }
 
@@ -146,6 +150,7 @@ class Player(startX: Float, startY: Float) : Entity(
     override fun reset() {
         super.reset()
         state = State.IDLE
+        updateCollisionFromIdle()
         updateDimensions()
     }
 }
