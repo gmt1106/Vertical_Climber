@@ -52,13 +52,6 @@ class Platform(
     }
 
     /**
-     * Update movement — slides left only
-     */
-    private fun updateMovement(deltaTime: Float) {
-        position.x -= moveSpeed * deltaTime
-    }
-
-    /**
      * Toggle between PLATFORM_MOVING_1 and PLATFORM_MOVING_2 for conveyor animation
      */
     private fun updateAnimation(deltaTime: Float) {
@@ -120,5 +113,11 @@ class Platform(
         animationTimer = 0f
         useAltFrame = false
         hasSpikes = spikes
+        moveSpeed = if (platformType == PlatformType.MOVING) {
+            val speed = Constants.MOVING_PLATFORM_SPEED
+            if (Random.nextBoolean()) speed else -speed
+        } else {
+            Constants.MOVING_PLATFORM_SPEED
+        }
     }
 }

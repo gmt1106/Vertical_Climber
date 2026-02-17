@@ -49,7 +49,7 @@ object Constants {
     const val PLATFORM_ANIMATION_INTERVAL = 0.3f // seconds between art frame toggles
     const val MOVING_PLATFORM_CHANCE = 0.3f // 30% chance to spawn a MOVING platform
     // 70% chance to spawn a NORMAL platform
-    const val SPIKE_PLATFORM_CHANCE = 0.15f // 15% chance to spawn spikes on NORMAL platform
+    const val SPIKE_PLATFORM_CHANCE = 1.0f // 15% chance to spawn spikes on NORMAL platform
     // 0.7 * 0.15 = 0.1025 = 10.25% chance to spawn spiked NORMAL platform
 
 
@@ -70,11 +70,26 @@ object Constants {
     const val MILESTONE_DISPLAY_DURATION = 1f // seconds to show milestone text on screen
 
     // Collision
-    const val PLATFORM_COLLISION_TOLERANCE = 300f // pixels of tolerance for landing on platforms
+    const val PLATFORM_COLLISION_TOLERANCE = 50f // pixels of tolerance for landing on platforms
     const val PLATFORM_X_OVERLAP_RATIO = 0.5f // minimum fraction of goat width that must overlap platform to land
 
     // Pause Button
     const val PAUSE_BUTTON_PADDING = 20f // padding from screen edges
     const val PAUSE_BUTTON_SIZE = 60f // width and height of the tap target
     const val PAUSE_BUTTON_Y = 20f // top offset for the button
+
+    // Terminal Background
+    const val TERMINAL_TITLE_BAR_RATIO = 0.04f // fraction of screen height occupied by terminal title bar
+
+    // Intro Sequence
+    const val INTRO_CHAR_DELAY = 0.04f // seconds per character (typewriter speed)
+    const val INTRO_MESSAGE_DELAY = 0.5f // seconds pause after a message finishes typing before next
+    const val INTRO_DISAPPEAR_DELAY = 1.0f // seconds between each message disappearing
+    const val INTRO_FINAL_PAUSE = 1.5f // pause after last message before disappearing starts
+    const val INTRO_TEXT_SIZE = 30f // text size for intro terminal messages
+    const val INTRO_TEXT_LEFT_PADDING = 10f // left margin for intro text
+    const val INTRO_TEXT_TOP_START = 10f // Y start position for first intro message
+
+    // Best Distance HUD
+    const val BEST_HUD_TEXT_SIZE = 28f // text size for best distance in HUD
 }

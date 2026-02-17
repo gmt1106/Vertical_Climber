@@ -44,9 +44,13 @@ class MainActivity : AppCompatActivity() {
         gameView.pauseGame()
     }
 
+    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // Pause game on back button
-        gameView.pauseGame()
-        // TODO: Show pause menu (Phase 6)
+        if (gameView.isInActiveGame()) {
+            gameView.pauseGame()
+        } else {
+            super.onBackPressed()
+        }
     }
 }
