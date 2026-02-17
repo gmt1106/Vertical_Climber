@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 import com.yourpackage.mountaingoat.ui.views.GameView
 
 /**
@@ -12,6 +15,7 @@ import com.yourpackage.mountaingoat.ui.views.GameView
 class MainActivity : AppCompatActivity() {
 
     private lateinit var gameView: GameView
+    private lateinit var adView: AdView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,19 +33,34 @@ class MainActivity : AppCompatActivity() {
         // Keep screen on while playing
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Create and set game view
-        gameView = GameView(this)
-        setContentView(gameView)
+        // Initialize Mobile Ads SDK
+        MobileAds.initialize(this)
+
+        // Inflate layout with GameView and AdView
+        setContentView(R.layout.activity_main)
+        gameView = findViewById(R.id.gameView)
+        adView = findViewById(R.id.adView)
+
+        // Load banner ad
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
     }
 
     override fun onResume() {
         super.onResume()
         gameView.resumeGame()
+        adView.resume()
     }
 
     override fun onPause() {
         super.onPause()
         gameView.pauseGame()
+        adView.pause()
+    }
+
+    override fun onDestroy() {
+        adView.destroy()
+        super.onDestroy()
     }
 
     @Deprecated("Deprecated in Java")

@@ -68,16 +68,16 @@
 
 ## Files Modified/Created
 
-| File | Change |
-|------|--------|
-| `GameState.kt` | Added `INTRO`, `TITLE` states |
-| `Constants.kt` | Added intro timing, terminal background, best HUD constants |
-| `GameView.kt` | Computes `contentOffsetY` and `contentHeight`, passes to `GameEngine` |
-| `MainActivity.kt` | Back button pauses during active gameplay, exits during INTRO/TITLE |
-| `AsciiRenderer.kt` | Terminal background bitmap, `renderIntro()`, `renderTitle()`, best distance in HUD and game over, NEW BEST indicator, content offset via canvas translation |
-| `GameEngine.kt` | Context param, SharedPreferences, IntroManager integration, jump sound, bidirectional moving platform carry |
-| `IntroManager.kt` | **New** - Self-contained intro sequence with own SoundPool for typing sound |
-| `Platform.kt` | Random direction for moving platforms (`moveSpeed` sign) |
-| `res/raw/typing_keyboard_sound.mp3` | **New** - Typing keyboard sound effect |
-| `res/raw/cartoon_jump_sound.mp3` | **New** - Jump sound effect |
-| `res/drawable/mac_terminal_screen.png` | **New** - Terminal background image |
+| File                                   | Change                                                                                                                                                      |
+|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `GameState.kt`                         | Added `INTRO`, `TITLE` states                                                                                                                               |
+| `Constants.kt`                         | Added intro timing, terminal background, best HUD constants                                                                                                 |
+| `GameView.kt`                          | Computes `contentOffsetY` and `contentHeight`, passes to `GameEngine`                                                                                       |
+| `MainActivity.kt`                      | Back button pauses during active gameplay, exits during INTRO/TITLE                                                                                         |
+| `AsciiRenderer.kt`                     | Terminal background bitmap, `renderIntro()`, `renderTitle()`, best distance in HUD and game over, NEW BEST indicator, content offset via canvas translation |
+| `GameEngine.kt`                        | Context param, SharedPreferences, IntroManager integration, jump sound, bidirectional moving platform carry                                                 |
+| `IntroManager.kt`                      | **New** - Self-contained intro sequence with own SoundPool for typing sound                                                                                 |
+| `Platform.kt`                          | Random direction for moving platforms (`moveSpeed` sign)                                                                                                    |
+| `res/raw/typing_keyboard_sound.mp3`    | **New** - Typing keyboard sound effect                                                                                                                      |
+| `res/raw/cartoon_jump_sound.mp3`       | **New** - Jump sound effect                                                                                                                                 |
+| `res/drawable/mac_terminal_screen.png` | **New** - Terminal background image                                                                                                                         |
