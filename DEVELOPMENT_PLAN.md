@@ -279,47 +279,67 @@ app/src/main/java/com/yourpackage/jumpergame/
 **Verification**: Moving platforms slide left with conveyor animation. Goat rides moving platform and falls off edge. Distance milestones display correctly. Obstacles cause instant death.
 
 ### Phase 6: UI & Navigation
-**Goal**: Complete menu system and persistent storage
+**Goal**: Terminal-style intro sequence, title screen, menu system, and persistent storage
 
-1. **Fragments & Navigation**
-   - Create `MenuFragment.kt`: Main menu
-     - Buttons: Start Game, High Scores, Help
-     - ASCII art "MOUNTAIN GOAT" title logo with goat artwork
-     - Navigation to GameFragment
+1. **Terminal Intro Sequence** (before title screen)
+   - New game state: `INTRO` added to `GameState.kt`
+   - **Terminal background image**: Load `res/drawable/mac_terminal_screen.png` as a `Bitmap` in `AsciiRenderer`, scaled to screen size once during init. Draw as background during INTRO and title screen states. Keep this background during gameplay.
+   - Messages render from top-left using monospace font, each prefixed with `"> "`
+   - Messages appear one by one with a timed delay between each:
+     1. `> Do you want to play the Mountain Goat Game? Press enter to start!`
+     2. `> ` (blank prompt line)
+     3. `> Okay! Let's start!`
+   - After all messages are shown, they disappear one by one from top to bottom (as if the terminal is scrolling down), with a timed delay between each removal
+   - After all messages have disappeared, transition to title screen (step 2)
+   - Tap anywhere to skip the intro and go directly to title screen
 
-   - Create `GameFragment.kt`: Game container
-     - Host GameView
-     - Pause overlay (semi-transparent)
-     - Game over dialog (score, restart, menu)
+2. **Title Screen & Menu**
+   - ASCII art "MOUNTAIN GOAT" title logo (`AsciiArt.TITLE_MOUNTAIN_GOAT`) rendered centered on screen
+   - Menu options rendered below the title as ASCII text:
+     - `> Start Game`
+   - Best distance displayed below (e.g., `Best: 142m`) if one exists
+   - Tap "Start Game" → transition to READY state (gameplay begins)
 
-   - Create `HighScoreFragment.kt`: Distance leaderboard
-     - RecyclerView with top 10 distances
-     - Display: Rank, Distance (meters), Date
-     - Remove: Score column, Level column (simplified)
-     - Clear scores button (with confirmation)
+3. **Game Over Screen**
+   - Show game over overlay (already implemented) with current distance and best distance
+   - If new best: display a "NEW BEST!" indicator
 
-2. **Persistent Storage**
-   - Create `HighScoreRepository.kt`
-     - Use SharedPreferences for storage
-     - Data class: HighScoreEntry (rank, distanceMeters, timestamp)
-     - Remove: score field, level field (simplified)
-     - Methods: saveDistance(), getTopDistances(), isHighDistance(), clearAllScores()
-     - Storage key: "high_distance_list" (JSON array)
+4. **Persistent Storage (Best Distance Only)**
+   - Use SharedPreferences directly — no repository class needed
+     - Single key: `"best_distance"` storing an `Int` (meters)
+     - On game over: compare current distance to stored best, update if higher
+     - Methods in `GameEngine`: `saveBestDistance()`, `getBestDistance()`
+     - Requires passing `Context` (or SharedPreferences) to GameEngine
 
-3. **UI Overlays (In-Game HUD)**
-   - In AsciiRenderer: `renderUI(canvas, gameState)`
-     - Top-center: Distance in meters (e.g., "45m")
-     - Remove: Score display, Level display, Health hearts
-     - Minimal UI for clean, focused aesthetic
-     - Optional: High distance record for comparison
+5. **UI Overlays (In-Game HUD)**
+   - Best distance shown on HUD during gameplay (e.g., `Best: 208m`) below or next to current distance, fetched from SharedPreferences
 
-4. **MainActivity Setup**
-   - Navigation graph with fragments
-   - Fragment transactions
-   - Handle back button: Pause game if in GameFragment
-   - Immersive fullscreen mode
+**Verification**: Terminal intro plays through with timed message sequence. Title screen shows ASCII logo. Best distance persists across app restarts. In-game HUD displays accurate info. Back button pauses game.
 
-**Verification**: Navigate between all screens. High scores save/load correctly. In-game HUD displays accurate info. Back button pauses game.
+### Phase 7: Google Ads Integration
+**Goal**: Add a non-intrusive banner ad at the bottom of the screen
+
+1. **Dependencies & Setup**
+   - Add Google Mobile Ads SDK dependency to `build.gradle.kts`: `com.google.android.gms:play-services-ads`
+   - Add `APPLICATION_ID` meta-data to `AndroidManifest.xml`
+   - Initialize Mobile Ads SDK in `MainActivity.onCreate()` via `MobileAds.initialize()`
+
+2. **Banner Ad Layout**
+   - Change `MainActivity` from setting `GameView` directly via `setContentView(gameView)` to using an XML layout
+   - Layout structure: vertical `FrameLayout` with `GameView` filling the top and an `AdView` (banner) anchored at the bottom
+   - Banner size: `AdSize.BANNER` (320x50dp) — smallest standard size, minimal screen intrusion
+   - `GameView` resizes to fill remaining space above the ad — game rendering area shrinks slightly but gameplay is unaffected
+
+3. **Ad Loading & Lifecycle**
+   - Load ad in `MainActivity.onCreate()` after layout inflation: `adView.loadAd(AdRequest.Builder().build())`
+   - Handle lifecycle: `adView.pause()` in `onPause()`, `adView.resume()` in `onResume()`, `adView.destroy()` in `onDestroy()`
+   - Use test ad unit ID during development, replace with real ID before release
+
+4. **Screen Adjustment**
+   - `GameView` receives its actual dimensions via `surfaceCreated()` — already uses `width`/`height` from there, so the game automatically adapts to the reduced screen height
+   - No changes needed in `GameEngine`, `AsciiRenderer`, or game logic — they already work with whatever screen dimensions `GameView` reports
+
+**Verification**: Banner ad displays at the bottom of the screen. Game renders correctly in the remaining space above the ad. Ad does not overlap game content. Game performance (60 FPS) is not affected. Ad loads and displays without crashes.
 
 
 **Verification**: Game runs smoothly at 60 FPS. No crashes or memory leaks. Difficulty feels balanced. All edge cases handled.
