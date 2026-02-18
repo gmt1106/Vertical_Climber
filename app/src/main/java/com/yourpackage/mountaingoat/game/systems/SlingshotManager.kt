@@ -119,6 +119,14 @@ class SlingshotManager(
     }
 
     /**
+     * Get the current launch velocity during aiming (does NOT reset state)
+     * Used for trajectory preview while the player is still pulling
+     */
+    fun getAimingVelocity(): Vector2 {
+        return calculateLaunchVelocity()
+    }
+
+    /**
      * Get launch velocity and reset slingshot state
      * Called by GameEngine when transitioning to JUMPING
      */

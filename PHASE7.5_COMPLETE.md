@@ -42,13 +42,22 @@
 - Added `Platform.getArtCharWidth()` instance method — returns character count of current platform's art
 - `GameEngine` uses `getMaxArtWidth(type)` for platform X positioning during generation
 
+### 8. Trajectory Preview During Aiming ✅
+- Added `TRAJECTORY_DOT_COUNT` constant to control how many dots are displayed
+- Added `getAimingVelocity()` to `SlingshotManager` — returns current launch velocity without resetting slingshot state
+- `GameEngine` calculates trajectory points during AIMING state using existing `PhysicsEngine.calculateTrajectory()`
+- Trajectory starts from horizontal center of the goat's top edge
+- `AsciiRenderer` draws white dots with fading opacity along the predicted arc
+- Dots disappear when the goat launches (exits AIMING state)
+
 ## Files Modified
 
 | File                   | Change                                                                                                                                                                   |
 |------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Constants.kt`         | Added `DEBUG_SHOW_COLLISION_BOXES`, `CHAR_WIDTH_BLOCK`. Changed `CHAR_WIDTH` to runtime `var`. Removed `PLATFORM_MIN_WIDTH`, `PLATFORM_MAX_WIDTH`, `PLATFORM_HEIGHT`     |
-| `AsciiRenderer.kt`     | Added debug paints, debug bounds rendering in `render()`. Measures `CHAR_WIDTH` and `CHAR_WIDTH_BLOCK` at init                                                           |
-| `GameEngine.kt`        | Passes debug bounds to renderer. Removed `platformWidth` from `createPlatform` calls. Uses `Platform.getMaxArtWidth()` for positioning. Fall-off-edge uses `getBounds()` |
+| `Constants.kt`         | Added `DEBUG_SHOW_COLLISION_BOXES`, `CHAR_WIDTH_BLOCK`, `TRAJECTORY_DOT_COUNT`. Changed `CHAR_WIDTH` to runtime `var`. Removed `PLATFORM_MIN_WIDTH`, `PLATFORM_MAX_WIDTH`, `PLATFORM_HEIGHT` |
+| `AsciiRenderer.kt`     | Added debug paints, debug bounds rendering, trajectory dot rendering in `render()`. Measures `CHAR_WIDTH` and `CHAR_WIDTH_BLOCK` at init                                  |
+| `GameEngine.kt`        | Passes debug bounds and trajectory points to renderer. Removed `platformWidth` from `createPlatform` calls. Uses `Platform.getMaxArtWidth()` for positioning. Fall-off-edge uses `getBounds()` |
+| `SlingshotManager.kt`  | Added `getAimingVelocity()` for trajectory preview without resetting slingshot state                                                                                       |
 | `Player.kt`            | `getBounds()` baseline fix. `collisionOffsetX` from idle art leading spaces. `updateDimensions()` no longer overwrites offset                                            |
 | `Platform.kt`          | `getBounds()` from ASCII art dimensions with correct char width per type. Removed `platformWidth` param. Added `getMaxArtWidth()` and `getArtCharWidth()`                |
 | `EntityManager.kt`     | Removed `width` param from `createPlatform()`                                                                                                                            |

@@ -17,6 +17,7 @@ object Constants {
     const val MAX_LAUNCH_ANGLE = 70f // max degrees from vertical (straight up) for launch direction
     const val TRAJECTORY_POINTS = 30 // number of points for trajectory calculation
     const val TRAJECTORY_TIME_STEP = 0.05f // time between trajectory points
+    const val TRAJECTORY_DOT_COUNT = 10 // number of dots displayed in the trajectory preview
 
     // Rendering Constants
     const val TARGET_FPS = 60
@@ -43,10 +44,10 @@ object Constants {
     // Moving Platform Constants
     const val MOVING_PLATFORM_SPEED = 80f // pixels per second sliding left
     const val PLATFORM_ANIMATION_INTERVAL = 0.3f // seconds between art frame toggles
-    const val MOVING_PLATFORM_CHANCE = 0.3f // 30% chance to spawn a MOVING platform
-    // 70% chance to spawn a NORMAL platform
-    const val SPIKE_PLATFORM_CHANCE = 1.0f // 15% chance to spawn spikes on NORMAL platform
-    // 0.7 * 0.15 = 0.1025 = 10.25% chance to spawn spiked NORMAL platform
+    const val MOVING_PLATFORM_CHANCE = 0.2f // 20% chance to spawn a MOVING platform
+    // 80% chance to spawn a NORMAL platform
+    const val SPIKE_PLATFORM_CHANCE = 0.15f // 15% chance to spawn spikes on NORMAL platform
+    // 0.8 * 0.15 = 0.12 = 12% chance to spawn spiked NORMAL platform
 
 
     // Camera Constants
@@ -90,5 +91,5 @@ object Constants {
     const val BEST_HUD_TEXT_SIZE = 28f // text size for best distance in HUD
 
     // Debug
-    const val DEBUG_SHOW_COLLISION_BOXES = true
+    const val DEBUG_SHOW_COLLISION_BOXES = false
 }

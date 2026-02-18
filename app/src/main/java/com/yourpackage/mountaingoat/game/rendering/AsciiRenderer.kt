@@ -149,6 +149,12 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
         Constants.PAUSE_BUTTON_Y + Constants.PAUSE_BUTTON_SIZE + contentOffsetY
     )
 
+    // Trajectory preview paint
+    private val trajectoryPaint = Paint().apply {
+        color = Color.WHITE
+        isAntiAlias = true
+    }
+
     // Debug collision box paints
     private val debugPlayerPaint = Paint().apply {
         color = Color.RED
@@ -176,7 +182,8 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
         milestoneText: String? = null,
         bestDistance: Int = 0,
         isNewBest: Boolean = false,
-        debugBounds: List<Pair<RectF, Boolean>> = emptyList()
+        debugBounds: List<Pair<RectF, Boolean>> = emptyList(),
+        trajectoryPoints: List<Vector2> = emptyList()
     ) {
         // Draw terminal background full screen
         canvas.drawBitmap(terminalBackground, 0f, 0f, null)
@@ -200,6 +207,18 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
                         bounds.bottom - cameraPosY
                     )
                     drawRect(screenRect, if (isPlayer) debugPlayerPaint else debugPlatformPaint)
+                }
+            }
+
+            // Render trajectory dots
+            if (trajectoryPoints.isNotEmpty()) {
+                val dotCount = minOf(trajectoryPoints.size, Constants.TRAJECTORY_DOT_COUNT)
+                for (i in 0 until dotCount) {
+                    val point = trajectoryPoints[i]
+                    val screenPos = worldToScreen(point)
+                    val alpha = 255 - (i * 255 / dotCount)
+                    trajectoryPaint.alpha = alpha
+                    drawCircle(screenPos.x, screenPos.y, 4f, trajectoryPaint)
                 }
             }
 

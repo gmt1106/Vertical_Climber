@@ -19,6 +19,7 @@ import com.yourpackage.mountaingoat.game.rendering.AsciiRenderer
 import com.yourpackage.mountaingoat.game.systems.IntroManager
 import com.yourpackage.mountaingoat.game.systems.SlingshotManager
 import com.yourpackage.mountaingoat.utils.Constants
+import com.yourpackage.mountaingoat.utils.Vector2
 import kotlin.random.Random
 import androidx.core.content.edit
 
@@ -281,6 +282,22 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
                     emptyList()
                 }
 
+                // Calculate trajectory preview during aiming
+                val trajectoryPoints = if (gameState == GameState.AIMING) {
+                    val velocity = slingshotManager.getAimingVelocity()
+                    if (velocity != Vector2.ZERO) {
+                        val startPos = Vector2(
+                            player.position.x + player.visualWidth / 2f,
+                            player.position.y
+                        )
+                        PhysicsEngine.calculateTrajectory(startPos, velocity)
+                    } else {
+                        emptyList()
+                    }
+                } else {
+                    emptyList()
+                }
+
                 renderer.render(
                     canvas,
                     entities,
@@ -290,7 +307,8 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
                     milestoneText = milestone,
                     bestDistance = getBestDistance(),
                     isNewBest = newBestAchieved,
-                    debugBounds = debugBounds
+                    debugBounds = debugBounds,
+                    trajectoryPoints = trajectoryPoints
                 )
             }
         }
