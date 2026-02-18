@@ -65,14 +65,14 @@ object CollisionDetector {
     }
 
     /**
-     * Get collision point between player and platform
-     * Returns the Y coordinate where player should land
+     * Calculate the player's position.y after landing on a platform.
+     * Places the goat so its feet sit on the platform's visible top.
      *
-     * player.height is dynamically calculated as (lines - 1) * CHAR_HEIGHT
-     * This aligns the last ASCII line (feet) baseline with the platform position
+     * Platform visible top = platform.position.y - CHAR_HEIGHT (text draws above baseline)
+     * Player position.y = platform visible top - player.height (shift up by goat's full height)
      */
-    fun getCollisionPoint(player: Player, platform: Platform): Float {
-        return platform.position.y - player.height - (Constants.CHAR_HEIGHT * 2)
+    fun getLandingPositionY(player: Player, platform: Platform): Float {
+        return (platform.position.y - Constants.CHAR_HEIGHT) - player.height
     }
 
     /**

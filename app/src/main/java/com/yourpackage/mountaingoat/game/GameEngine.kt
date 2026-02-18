@@ -2,6 +2,7 @@ package com.yourpackage.mountaingoat.game
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.view.MotionEvent
@@ -81,7 +82,7 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
         // Initialize player so feet align with ground top
         player = Player(0f, 0f) // temporary position, will adjust after dimensions are known
         val groundTop = ground.position.y
-        val startY = groundTop - player.height - Constants.CHAR_HEIGHT
+        val startY = groundTop - player.height
         val startX = (screenWidth / 2f) - (player.width / 2f)
         player.position.set(startX, startY)
         startingY = startY
@@ -218,7 +219,7 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
                 }
 
                 // Player landed on platform
-                val landingY = CollisionDetector.getCollisionPoint(player, platform)
+                val landingY = CollisionDetector.getLandingPositionY(player, platform)
                 player.position.y = landingY
 
                 // Handle platform-specific landing logic
@@ -269,6 +270,17 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
 
                 val milestone = if (milestoneTimer > 0f) "${(lastMilestone * Constants.MILESTONE_INTERVAL_METERS).toInt()}m!" else null
 
+                // Build debug collision bounds: Pair<RectF, isPlayer>
+                val debugBounds = if (Constants.DEBUG_SHOW_COLLISION_BOXES) {
+                    val bounds = mutableListOf(Pair(player.getBounds(), true))
+                    for (platform in entityManager.getActivePlatforms()) {
+                        bounds.add(Pair(platform.getBounds(), false))
+                    }
+                    bounds
+                } else {
+                    emptyList()
+                }
+
                 renderer.render(
                     canvas,
                     entities,
@@ -277,7 +289,8 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
                     isPaused = gameState == GameState.PAUSED,
                     milestoneText = milestone,
                     bestDistance = getBestDistance(),
-                    isNewBest = newBestAchieved
+                    isNewBest = newBestAchieved,
+                    debugBounds = debugBounds
                 )
             }
         }
@@ -294,17 +307,16 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
         // Create first platform above player (lower Y = higher on screen)
         val firstPlatformY = playerY - Constants.PLATFORM_MIN_SPACING
         entityManager.createPlatform(
-            x = startX - 20f,
+            x = startX,
             y = firstPlatformY,
-            width = Constants.PLATFORM_MAX_WIDTH,
             type = Platform.PlatformType.NORMAL
         )
 
         // Generate platforms above, filling the entire visible screen up to Y = 0
         var currentY = firstPlatformY
         while (currentY > 0f) {
-            val platformWidth = Random.nextFloat() * (Constants.PLATFORM_MAX_WIDTH - Constants.PLATFORM_MIN_WIDTH) + Constants.PLATFORM_MIN_WIDTH
-            val platformX = Random.nextFloat() * (screenWidth - platformWidth)
+            val artWidth = Platform.getMaxArtWidth(Platform.PlatformType.NORMAL)
+            val platformX = Random.nextFloat() * (screenWidth - artWidth)
             val spacing = Random.nextFloat() * (Constants.PLATFORM_MAX_SPACING - Constants.PLATFORM_MIN_SPACING) + Constants.PLATFORM_MIN_SPACING
 
             currentY -= spacing
@@ -312,7 +324,6 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
             entityManager.createPlatform(
                 x = platformX,
                 y = currentY,
-                width = platformWidth,
                 type = Platform.PlatformType.NORMAL
             )
         }
@@ -330,20 +341,17 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
         // Use player position as reference so platforms are always generated ahead
         val generateThreshold = player.position.y - Constants.PLATFORM_MAX_SPACING
         if (highestPlatformY > generateThreshold) {
-            val platformWidth = Random.nextFloat() *
-                    (Constants.PLATFORM_MAX_WIDTH - Constants.PLATFORM_MIN_WIDTH) +
-                    Constants.PLATFORM_MIN_WIDTH
-            val platformX = Random.nextFloat() * (screenWidth -
-                    platformWidth)
+            // Randomly assign platform type
+            val isMoving = Random.nextFloat() < Constants.MOVING_PLATFORM_CHANCE
+            val type = if (isMoving) Platform.PlatformType.MOVING else Platform.PlatformType.NORMAL
+
+            val artWidth = Platform.getMaxArtWidth(type)
+            val platformX = Random.nextFloat() * (screenWidth - artWidth)
             val spacing = Random.nextFloat() *
                     (Constants.PLATFORM_MAX_SPACING - Constants.PLATFORM_MIN_SPACING) +
                     Constants.PLATFORM_MIN_SPACING
 
             val newY = highestPlatformY - spacing
-
-            // Randomly assign platform type
-            val isMoving = Random.nextFloat() < Constants.MOVING_PLATFORM_CHANCE
-            val type = if (isMoving) Platform.PlatformType.MOVING else Platform.PlatformType.NORMAL
 
             // Spikes only on NORMAL platforms, and never two spiked in a row
             val hasSpikes = !isMoving &&
@@ -354,7 +362,6 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
             entityManager.createPlatform(
                 x = platformX,
                 y = newY,
-                width = platformWidth,
                 type = type,
                 hasSpikes = hasSpikes
             )
@@ -449,8 +456,9 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
         // Check if goat's feet still overlap the platform horizontally
         val feetLeft = player.position.x + player.collisionOffsetX
         val feetRight = feetLeft + player.width
-        val platLeft = platform.position.x
-        val platRight = platLeft + platform.width
+        val platBounds = platform.getBounds()
+        val platLeft = platBounds.left
+        val platRight = platBounds.right
         if (feetRight < platLeft || feetLeft > platRight) {
             // Goat fell off the platform edge
             player.velocity.y = Constants.FALL_OFF_PLATFORM_VELOCITY // small downward velocity to start falling
@@ -502,7 +510,7 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
 
         player.reset()
         player.active = true
-        val startY = ground.position.y - player.height - Constants.CHAR_HEIGHT
+        val startY = ground.position.y - player.height
         val startX = (screenWidth / 2f) - (player.width / 2f)
         player.position.set(startX, startY)
         player.velocity.set(0f, 0f)

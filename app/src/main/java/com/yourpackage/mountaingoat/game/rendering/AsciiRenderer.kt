@@ -38,6 +38,12 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
         isAntiAlias = true
     }
 
+    init {
+        // Measure actual character widths and set them globally
+        Constants.CHAR_WIDTH = textPaint.measureText("X")
+        Constants.CHAR_WIDTH_BLOCK = textPaint.measureText("▓")
+    }
+
     private val uiPaint = Paint().apply {
         color = Color.WHITE
         textSize = Constants.TEXT_SIZE_UI
@@ -143,6 +149,18 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
         Constants.PAUSE_BUTTON_Y + Constants.PAUSE_BUTTON_SIZE + contentOffsetY
     )
 
+    // Debug collision box paints
+    private val debugPlayerPaint = Paint().apply {
+        color = Color.RED
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+    }
+    private val debugPlatformPaint = Paint().apply {
+        color = Color.GREEN
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+    }
+
     // Camera position (Y coordinate of top of screen in world space)
     var cameraPosY: Float = 0f
 
@@ -157,7 +175,8 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
         isPaused: Boolean = false,
         milestoneText: String? = null,
         bestDistance: Int = 0,
-        isNewBest: Boolean = false
+        isNewBest: Boolean = false,
+        debugBounds: List<Pair<RectF, Boolean>> = emptyList()
     ) {
         // Draw terminal background full screen
         canvas.drawBitmap(terminalBackground, 0f, 0f, null)
@@ -168,6 +187,19 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
             entities.forEach { entity ->
                 if (entity.active) {
                     renderEntity(this, entity)
+                }
+            }
+
+            // Debug collision boxes
+            if (Constants.DEBUG_SHOW_COLLISION_BOXES) {
+                for ((bounds, isPlayer) in debugBounds) {
+                    val screenRect = RectF(
+                        bounds.left,
+                        bounds.top - cameraPosY,
+                        bounds.right,
+                        bounds.bottom - cameraPosY
+                    )
+                    drawRect(screenRect, if (isPlayer) debugPlayerPaint else debugPlatformPaint)
                 }
             }
 

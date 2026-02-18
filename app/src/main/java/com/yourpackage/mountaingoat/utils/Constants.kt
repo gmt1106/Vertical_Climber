@@ -29,14 +29,10 @@ object Constants {
     const val TEXT_SIZE_MILESTONE = 90f // Milestone level progression text
 
     // Character dimensions derived from entity text size
-    // For monospace font: width ≈ textSize * 0.6, height ≈ textSize
-    const val CHAR_WIDTH = TEXT_SIZE_ENTITY * 0.6f // width of one monospace character
+    // Measured from the actual monospace Paint at runtime (set by AsciiRenderer init)
+    var CHAR_WIDTH = TEXT_SIZE_ENTITY * 0.7f // ASCII characters (goat, moving platforms)
+    var CHAR_WIDTH_BLOCK = TEXT_SIZE_ENTITY * 0.7f // Block elements ░▒▓█ (normal/spiked platforms)
     const val CHAR_HEIGHT = TEXT_SIZE_ENTITY // height of one line of text
-
-    // Platform Constants
-    const val PLATFORM_MIN_WIDTH = 200f
-    const val PLATFORM_MAX_WIDTH = 300f
-    const val PLATFORM_HEIGHT = 40f
 
     // Platform spacing based on physics (jump height = v² / (2*g))
     // MAX_JUMP_HEIGHT = (1500)² / (2 * 980) ≈ 1148 pixels
@@ -92,4 +88,7 @@ object Constants {
 
     // Best Distance HUD
     const val BEST_HUD_TEXT_SIZE = 28f // text size for best distance in HUD
+
+    // Debug
+    const val DEBUG_SHOW_COLLISION_BOXES = true
 }

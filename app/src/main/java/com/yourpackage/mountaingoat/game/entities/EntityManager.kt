@@ -64,7 +64,6 @@ class EntityManager {
     fun createPlatform(
         x: Float,
         y: Float,
-        width: Float,
         type: Platform.PlatformType = Platform.PlatformType.NORMAL,
         hasSpikes: Boolean = false
     ): Platform {
@@ -76,7 +75,7 @@ class EntityManager {
         }
 
         // Initialize platform
-        platform.init(x, y, width, type, hasSpikes)
+        platform.init(x, y, type, hasSpikes)
         platforms.add(platform)
 
         return platform
@@ -100,7 +99,6 @@ class EntityManager {
             }
         }
 
-        // TODO: Cleanup obstacles (Phase 5)
     }
 
     /**

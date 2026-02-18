@@ -49,16 +49,16 @@ class Player(startX: Float, startY: Float) : Entity(
     private fun updateCollisionFromIdle() {
         val idleArt = if (direction == Direction.RIGHT) AsciiArt.GOAT_IDLE_RIGHT else AsciiArt.GOAT_IDLE_LEFT
         val feetLine = idleArt.last()
-        val leadingSpaces = feetLine.length - feetLine.trimStart().length
         val feetTrimmed = feetLine.trim()
 
         width = feetTrimmed.length * Constants.CHAR_WIDTH
+        val leadingSpaces = feetLine.length - feetLine.trimStart().length
         collisionOffsetX = leadingSpaces * Constants.CHAR_WIDTH
     }
 
     private fun updateDimensions() {
         val asciiLines = getAsciiRepresentation()
-        height = (asciiLines.size - 1) * Constants.CHAR_HEIGHT
+        height = asciiLines.size * Constants.CHAR_HEIGHT
         visualWidth = asciiLines.maxOf { it.length } * Constants.CHAR_WIDTH
     }
 

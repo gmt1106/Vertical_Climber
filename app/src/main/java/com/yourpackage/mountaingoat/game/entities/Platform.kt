@@ -1,5 +1,6 @@
 package com.yourpackage.mountaingoat.game.entities
 
+import android.graphics.RectF
 import com.yourpackage.mountaingoat.game.rendering.AsciiArt
 import com.yourpackage.mountaingoat.utils.Constants
 import com.yourpackage.mountaingoat.utils.Vector2
@@ -11,17 +12,35 @@ import kotlin.random.Random
 class Platform(
     x: Float = 0f,
     y: Float = 0f,
-    platformWidth: Float = Constants.PLATFORM_MIN_WIDTH,
     var type: PlatformType = PlatformType.NORMAL
 ) : Entity(
-    position = Vector2(x, y),
-    width = platformWidth,
-    height = Constants.PLATFORM_HEIGHT
+    position = Vector2(x, y)
 ) {
 
     enum class PlatformType {
         NORMAL,     // Standard platform
         MOVING      // Slides left like a conveyor belt
+    }
+
+    companion object {
+        /**
+         * Get the max art width in pixels for a given platform type (across all art variants)
+         */
+        fun getMaxArtWidth(type: PlatformType): Float {
+            val charWidth = if (type == PlatformType.NORMAL) Constants.CHAR_WIDTH_BLOCK else Constants.CHAR_WIDTH
+            val maxChars = when (type) {
+                PlatformType.NORMAL -> maxOf(
+                    AsciiArt.PLATFORM_NORMAL_1.maxOf { it.length },
+                    AsciiArt.PLATFORM_NORMAL_2.maxOf { it.length },
+                    AsciiArt.PLATFORM_NORMAL_3.maxOf { it.length }
+                )
+                PlatformType.MOVING -> maxOf(
+                    AsciiArt.PLATFORM_MOVING_1.maxOf { it.length },
+                    AsciiArt.PLATFORM_MOVING_2.maxOf { it.length }
+                )
+            }
+            return maxChars * charWidth
+        }
     }
 
     // Movement properties for MOVING platforms
@@ -60,6 +79,22 @@ class Platform(
             useAltFrame = !useAltFrame
             animationTimer = 0f
         }
+    }
+
+    /**
+     * Collision box derived from actual ASCII art dimensions,
+     * shifted up by CHAR_HEIGHT to account for drawText baseline offset
+     */
+    override fun getBounds(): RectF {
+        val art = getAsciiRepresentation()
+        val charWidth = if (type == PlatformType.NORMAL) Constants.CHAR_WIDTH_BLOCK else Constants.CHAR_WIDTH
+        val artWidth = art.maxOf { it.length } * charWidth
+        return RectF(
+            position.x,
+            position.y,
+            position.x + artWidth,
+            position.y - Constants.CHAR_HEIGHT
+        )
     }
 
     /**
@@ -103,9 +138,8 @@ class Platform(
     /**
      * Initialize platform at a new position
      */
-    fun init(x: Float, y: Float, platformWidth: Float, platformType: PlatformType, spikes: Boolean = false) {
+    fun init(x: Float, y: Float, platformType: PlatformType, spikes: Boolean = false) {
         position.set(x, y)
-        width = platformWidth
         type = platformType
         normalVariant = Random.nextInt(3)
         active = true
