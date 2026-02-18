@@ -50,13 +50,22 @@
 - `AsciiRenderer` draws white dots with fading opacity along the predicted arc
 - Dots disappear when the goat launches (exits AIMING state)
 
+### 9. Ground Off-Screen Game Over Fix ✅
+- Ground collision in `GameEngine.checkCollisions()` now skipped when ground is below visible screen
+- Prevents goat from landing on invisible ground after camera has scrolled up
+- Player falls through and existing `isPlayerOffScreen()` check triggers game over
+
+### 10. Neon Green Theme Color ✅
+- Added `THEME_COLOR` constant in `Constants.kt` (neon green `#39FF14`)
+- Applied to all text paints: entity art, UI (score, pause/play button), intro text, title screen, game over screen, milestone, best distance HUD, "NEW BEST!" text, paused overlay text
+
 ## Files Modified
 
 | File                   | Change                                                                                                                                                                   |
 |------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Constants.kt`         | Added `DEBUG_SHOW_COLLISION_BOXES`, `CHAR_WIDTH_BLOCK`, `TRAJECTORY_DOT_COUNT`. Changed `CHAR_WIDTH` to runtime `var`. Removed `PLATFORM_MIN_WIDTH`, `PLATFORM_MAX_WIDTH`, `PLATFORM_HEIGHT` |
-| `AsciiRenderer.kt`     | Added debug paints, debug bounds rendering, trajectory dot rendering in `render()`. Measures `CHAR_WIDTH` and `CHAR_WIDTH_BLOCK` at init                                  |
-| `GameEngine.kt`        | Passes debug bounds and trajectory points to renderer. Removed `platformWidth` from `createPlatform` calls. Uses `Platform.getMaxArtWidth()` for positioning. Fall-off-edge uses `getBounds()` |
+| `Constants.kt`         | Added `DEBUG_SHOW_COLLISION_BOXES`, `CHAR_WIDTH_BLOCK`, `TRAJECTORY_DOT_COUNT`, `THEME_COLOR`. Changed `CHAR_WIDTH` to runtime `var`. Removed `PLATFORM_MIN_WIDTH`, `PLATFORM_MAX_WIDTH`, `PLATFORM_HEIGHT` |
+| `AsciiRenderer.kt`     | Added debug paints, debug bounds rendering, trajectory dot rendering in `render()`. Measures `CHAR_WIDTH` and `CHAR_WIDTH_BLOCK` at init. All text paints use `THEME_COLOR` |
+| `GameEngine.kt`        | Passes debug bounds and trajectory points to renderer. Removed `platformWidth` from `createPlatform` calls. Uses `Platform.getMaxArtWidth()` for positioning. Fall-off-edge uses `getBounds()`. Ground collision skipped when off-screen |
 | `SlingshotManager.kt`  | Added `getAimingVelocity()` for trajectory preview without resetting slingshot state                                                                                       |
 | `Player.kt`            | `getBounds()` baseline fix. `collisionOffsetX` from idle art leading spaces. `updateDimensions()` no longer overwrites offset                                            |
 | `Platform.kt`          | `getBounds()` from ASCII art dimensions with correct char width per type. Removed `platformWidth` param. Added `getMaxArtWidth()` and `getArtCharWidth()`                |

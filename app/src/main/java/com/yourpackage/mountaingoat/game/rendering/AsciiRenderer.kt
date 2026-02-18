@@ -32,7 +32,7 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
 
     // Paint objects for rendering
     private val textPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_ENTITY
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
@@ -45,14 +45,14 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
     }
 
     private val uiPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_UI
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
     }
 
     private val milestonePaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_MILESTONE
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
@@ -64,7 +64,7 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
 
     // Game over ASCII art paint - text size calculated dynamically to fit screen
     private val gameOverArtPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
         // Calculate text size so the longest line of GAME_OVER art fits screen width (with padding)
@@ -75,14 +75,14 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
     }
 
     private val gameOverSubPaint = Paint().apply {
-        color = Color.LTGRAY
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_GAME_OVER_SUB
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
     }
 
     private val playButtonPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_UI * 2f
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
@@ -93,14 +93,14 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
     }
 
     private val pausedTextPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_MILESTONE
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
     }
 
     private val pausedSubPaint = Paint().apply {
-        color = Color.LTGRAY
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_GAME_OVER_SUB
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
@@ -108,7 +108,7 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
 
     // Intro terminal text paint
     private val introPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         textSize = Constants.INTRO_TEXT_SIZE
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
@@ -116,7 +116,7 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
 
     // Title ASCII art paint - text size calculated dynamically to fit screen
     private val titleArtPaint = Paint().apply {
-        color = Color.WHITE
+        color = Constants.THEME_COLOR
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
         val longestLine = AsciiArt.TITLE_MOUNTAIN_GOAT.maxOf { it.length }
@@ -127,15 +127,15 @@ class AsciiRenderer(context: Context, private val screenWidth: Int, private val 
 
     // Best distance HUD paint (smaller, gray)
     private val bestHudPaint = Paint().apply {
-        color = Color.LTGRAY
+        color = Constants.THEME_COLOR
         textSize = Constants.BEST_HUD_TEXT_SIZE
         typeface = Typeface.MONOSPACE
         isAntiAlias = true
     }
 
-    // "NEW BEST!" paint (yellow)
+    // "NEW BEST!" paint
     private val newBestPaint = Paint().apply {
-        color = Color.YELLOW
+        color = Constants.THEME_COLOR
         textSize = Constants.TEXT_SIZE_GAME_OVER_SUB
         typeface = Typeface.MONOSPACE
         isAntiAlias = true

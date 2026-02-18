@@ -198,8 +198,9 @@ class GameEngine(private val context: Context, private val screenWidth: Int, pri
     private fun checkCollisions() {
         val platforms = entityManager.getActivePlatforms()
 
-        // Check ground collision while ground is still visible
-        if (player.velocity.y > 0) {
+        // Check ground collision only while ground is still visible on screen
+        val groundVisible = ground.position.y < renderer.cameraPosY + screenHeight
+        if (groundVisible && player.velocity.y > 0) {
             val groundTop = ground.position.y
             val playerBottom = player.position.y + player.height
             if (playerBottom >= groundTop) {

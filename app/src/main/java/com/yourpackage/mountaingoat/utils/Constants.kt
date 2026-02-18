@@ -1,5 +1,7 @@
 package com.yourpackage.mountaingoat.utils
 
+import android.graphics.Color
+
 /**
  * Game constants and configuration values
  */
@@ -18,6 +20,9 @@ object Constants {
     const val TRAJECTORY_POINTS = 30 // number of points for trajectory calculation
     const val TRAJECTORY_TIME_STEP = 0.05f // time between trajectory points
     const val TRAJECTORY_DOT_COUNT = 10 // number of dots displayed in the trajectory preview
+
+    // Theme Color (neon green #39FF14)
+    const val THEME_COLOR = 0xFF39FF14.toInt()
 
     // Rendering Constants
     const val TARGET_FPS = 60
