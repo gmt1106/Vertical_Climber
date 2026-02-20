@@ -1,6 +1,16 @@
+![Screenshot](images/banner.png)
+
 # Mountain Goat
 
 An ASCII art vertical jumping game for Android where you control a mountain goat climbing higher and higher using a slingshot mechanic.
+
+  <table>                                                                                            
+    <tr>                                                    
+      <td><img src="images/start.jpg" width="200"></td>                                       
+      <td><img src="images/game_2.jpg" width="200"></td>                                       
+      <td><img src="images/game_over.jpg" width="200"></td>
+    </tr>
+  </table>
 
 ## Features
 
